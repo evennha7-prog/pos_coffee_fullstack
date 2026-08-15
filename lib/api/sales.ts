@@ -1,0 +1,162 @@
+import { Sale } from "./types"
+
+let mockSales: Sale[] = [
+  {
+    id: "S-00008",
+    no: 1,
+    invoice: "000008",
+    saleBy: "super",
+    customer: "chan",
+    totalCostKHR: 2500,
+    totalCostUSD: 0.63,
+    dueAmountKHR: 0,
+    dueAmountUSD: 0.00,
+    paidAmountKHR: 40000,
+    paidAmountUSD: 10.00,
+    changeAmountKHR: 37500,
+    changeAmountUSD: 9.38,
+    paymentStatus: "PAID",
+    createdAt: "21/Jul/2026",
+  },
+  {
+    id: "S-00007",
+    no: 2,
+    invoice: "000007",
+    saleBy: "super",
+    customer: "chan",
+    totalCostKHR: 3000,
+    totalCostUSD: 0.75,
+    dueAmountKHR: 0,
+    dueAmountUSD: 0.00,
+    paidAmountKHR: 3000,
+    paidAmountUSD: 0.75,
+    changeAmountKHR: 0,
+    changeAmountUSD: 0.00,
+    paymentStatus: "PAID",
+    createdAt: "16/Jul/2026",
+  },
+  {
+    id: "S-00006",
+    no: 3,
+    invoice: "000006",
+    saleBy: "super",
+    customer: "chan",
+    totalCostKHR: 3000,
+    totalCostUSD: 0.75,
+    dueAmountKHR: 0,
+    dueAmountUSD: 0.00,
+    paidAmountKHR: 3000,
+    paidAmountUSD: 0.75,
+    changeAmountKHR: 0,
+    changeAmountUSD: 0.00,
+    paymentStatus: "PAID",
+    createdAt: "15/Jul/2026",
+  },
+  {
+    id: "S-00005",
+    no: 4,
+    invoice: "000005",
+    saleBy: "super",
+    customer: "chan",
+    totalCostKHR: 2000,
+    totalCostUSD: 0.50,
+    dueAmountKHR: 0,
+    dueAmountUSD: 0.00,
+    paidAmountKHR: 2000,
+    paidAmountUSD: 0.50,
+    changeAmountKHR: 0,
+    changeAmountUSD: 0.00,
+    paymentStatus: "PAID",
+    createdAt: "15/Jul/2026",
+  },
+  {
+    id: "S-00004",
+    no: 5,
+    invoice: "000004",
+    saleBy: "super",
+    customer: "chan",
+    totalCostKHR: 3000,
+    totalCostUSD: 0.75,
+    dueAmountKHR: 0,
+    dueAmountUSD: 0.00,
+    paidAmountKHR: 3000,
+    paidAmountUSD: 0.75,
+    changeAmountKHR: 0,
+    changeAmountUSD: 0.00,
+    paymentStatus: "PAID",
+    createdAt: "15/Jul/2026",
+  },
+  {
+    id: "S-00003",
+    no: 6,
+    invoice: "000003",
+    saleBy: "super",
+    customer: "chan",
+    totalCostKHR: 20000,
+    totalCostUSD: 5.00,
+    dueAmountKHR: 0,
+    dueAmountUSD: 0.00,
+    paidAmountKHR: 20000,
+    paidAmountUSD: 5.00,
+    changeAmountKHR: 0,
+    changeAmountUSD: 0.00,
+    paymentStatus: "PAID",
+    createdAt: "15/Jul/2026",
+  },
+  {
+    id: "S-00002",
+    no: 7,
+    invoice: "000002",
+    saleBy: "super",
+    customer: "chan",
+    totalCostKHR: 5500,
+    totalCostUSD: 1.38,
+    dueAmountKHR: 0,
+    dueAmountUSD: 0.00,
+    paidAmountKHR: 5500,
+    paidAmountUSD: 1.38,
+    changeAmountKHR: 0,
+    changeAmountUSD: 0.00,
+    paymentStatus: "PAID",
+    createdAt: "15/Jul/2026",
+  },
+  {
+    id: "S-00001",
+    no: 8,
+    invoice: "000001",
+    saleBy: "super",
+    customer: "chan",
+    totalCostKHR: 4500,
+    totalCostUSD: 1.13,
+    dueAmountKHR: 4499,
+    dueAmountUSD: 1.12,
+    paidAmountKHR: 1,
+    paidAmountUSD: 0.00,
+    changeAmountKHR: 0,
+    changeAmountUSD: 0.00,
+    paymentStatus: "PARTIAL",
+    createdAt: "15/Jul/2026",
+  },
+]
+
+export async function getSales(): Promise<Sale[]> {
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  return [...mockSales]
+}
+
+export async function createSale(sale: Omit<Sale, "id" | "no">): Promise<Sale> {
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  const newSale = {
+    ...sale,
+    id: "S-" + String(mockSales.length + 1).padStart(5, "0"),
+    no: mockSales.length + 1,
+  } as Sale
+  mockSales.push(newSale)
+  return newSale
+}
+
+export async function deleteSale(id: string): Promise<boolean> {
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  mockSales = mockSales.filter((s) => s.id !== id)
+  return true
+}
