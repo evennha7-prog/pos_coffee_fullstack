@@ -20,6 +20,14 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { FadeArc } from "@/components/fade-arc"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { IconHourglass } from "@tabler/icons-react"
 import { login } from "@/lib/api"
 
 export function LoginForm({
@@ -31,6 +39,7 @@ export function LoginForm({
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showComingSoon, setShowComingSoon] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -133,15 +142,50 @@ export function LoginForm({
                 </Button>
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{" "}
-                  <Link href="/signup" className="underline underline-offset-4 font-medium hover:underline">
+                  <button
+                    type="button"
+                    onClick={() => setShowComingSoon(true)}
+                    className="underline underline-offset-4 font-medium hover:underline text-emerald-600 cursor-pointer bg-transparent border-0 p-0"
+                  >
                     Sign up
-                  </Link>
+                  </button>
                 </FieldDescription>
               </Field>
             </FieldGroup>
           </form>
         </CardContent>
       </Card>
+
+      {/* Coming Soon for Register in System Dialog */}
+      <Dialog open={showComingSoon} onOpenChange={setShowComingSoon}>
+        <DialogContent className="sm:max-w-[440px] p-6 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/15 text-amber-600 mb-2 shadow-inner">
+            <IconHourglass className="h-8 w-8 animate-pulse" />
+          </div>
+
+          <DialogHeader className="text-center sm:text-center">
+            <DialogTitle className="text-xl font-bold text-foreground text-center">
+              Coming Soon for Register in System 🚀
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground text-sm text-center mt-2 leading-relaxed">
+              Self-service registration is currently under development. Please contact your store administrator to create or activate your staff account.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-xl bg-muted/60 p-3.5 my-3 text-xs text-muted-foreground text-center border">
+            💡 <strong className="text-foreground">Default Superadmin:</strong> <code className="text-emerald-600 font-mono">super@coffee.com</code> / <code className="text-emerald-600 font-mono">123456</code>
+          </div>
+
+          <div className="flex flex-col gap-2 mt-2">
+            <Button
+              onClick={() => setShowComingSoon(false)}
+              className="w-full h-10 font-bold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+            >
+              Understand & Return to Login
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
