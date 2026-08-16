@@ -27,8 +27,8 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter()
-  const [email, setEmail] = useState("super@coffee.com")
-  const [password, setPassword] = useState("123456")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -45,13 +45,14 @@ export function LoginForm({
           name: user.username,
           email: user.email,
           role: user.role,
+          id: user.id
         }))
         router.push("/dashboard")
       } else {
-        setError(res.error || "Invalid credentials. Please check your email and password.")
+        setError(res.message || "Invalid email or password.")
       }
     } catch (err: any) {
-      setError(err.message || "Failed to login. Please ensure backend server is running.")
+      setError(err.message || "Failed to connect to backend server. Please make sure the MySQL backend is running.")
     } finally {
       setIsLoading(false)
     }
@@ -59,18 +60,18 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
-          <CardDescription>
-            Enter your email and password to connect to Coffee POS
+      <Card className="border-border/60 shadow-lg backdrop-blur-xs">
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl font-bold tracking-tight">Welcome Back</CardTitle>
+          <CardDescription className="text-muted-foreground">
+            Login with your Coffee POS account
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
-            <FieldGroup>
+            <FieldGroup className="gap-4">
               {error && (
-                <div className="p-3 text-xs font-semibold text-rose-600 bg-rose-500/10 border border-rose-500/20 rounded-xl text-center">
+                <div className="rounded-lg bg-destructive/15 p-3 text-sm font-medium text-destructive border border-destructive/20">
                   {error}
                 </div>
               )}
@@ -79,7 +80,7 @@ export function LoginForm({
                 <Input
                   id="email"
                   type="email"
-                  placeholder="super@coffee.com"
+                  placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -88,16 +89,11 @@ export function LoginForm({
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Password</FieldLabel>
-                  <a
-                    href="#"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >
-                    Default: 123456
-                  </a>
                 </div>
                 <Input
                   id="password"
                   type="password"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
