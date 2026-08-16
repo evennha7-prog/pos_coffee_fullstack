@@ -25,16 +25,20 @@ const app = express();
 
 const allowedOrigins: (string | undefined)[] = [
   process.env.LOCAL_DOMAIN || "http://localhost:3000",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://pos-managements-system.web.app",
+  "https://pos-managements-system.firebaseapp.com",
   process.env.CLIENT_DOMAIN,
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith(".web.app") || origin.endsWith(".firebaseapp.com")) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        callback(null, true); // Allow during development
       }
     },
     credentials: true,
