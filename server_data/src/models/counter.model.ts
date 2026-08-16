@@ -1,15 +1,43 @@
-import mongoose, { Document, Schema } from "mongoose";
+import pool from "../database/db";
 
-export interface ICounter extends Document {
-  _id: string;
-  sequcene_value: number;
-}
+export const getNextSequence = async (id: string): Promise<number> => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.query(
+      `INSERT INTO counters (id, sequence_value) 
+       VALUES (?, 1) 
+       ON DUPLICATE KEY UPDATE sequence_value = sequence_value + 1`,
+      [id]
+    );
 
-const schema = new Schema<ICounter>({
-  _id: { type: String, required: true },
-  sequcene_value: { type: Number, default: 0 },
-});
+    const [rows]: any = await connection.query(
+      `SELECT sequence_value FROM counters WHERE id = ?`,
+      [id]
+    );
 
-const Counter = mongoose.model<ICounter>("Counter", schema);
+    await connection.commit();
+    return rows[0]?.sequence_value || 1;
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
 
-export default Counter;
+export const generateProductCode = async (): Promise<string> => {
+  const seq = await getNextSequence("product_code");
+  return String(seq).padStart(6, "0");
+};
+
+export const generateInvoiceNumber = async (): Promise<string> => {
+  const seq = await getNextSequence("invoice_number");
+  return String(seq).padStart(6, "0");
+};
+
+export default {
+  getNextSequence,
+  generateProductCode,
+  generateInvoiceNumber,
+};

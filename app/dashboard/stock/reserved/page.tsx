@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { IconLock, IconSearch, IconEye } from "@tabler/icons-react"
+import { IconLock, IconSearch } from "@tabler/icons-react"
 
 interface ReservedStockItem {
   id: string
@@ -19,11 +19,7 @@ interface ReservedStockItem {
 
 export default function ReservedStockPage() {
   const [search, setSearch] = useState("")
-  const [items, setItems] = useState<ReservedStockItem[]>([
-    { id: "1", name: "Arabica Coffee Beans", sku: "CB-ARA-01", category: "Coffee Beans", reservedQty: 4, unit: "kg", referenceOrder: "CATERING-9902", reservedUntil: "2026-07-25" },
-    { id: "2", name: "Whole Milk 1L", sku: "MK-WHL-01", category: "Dairy", reservedQty: 10, unit: "packs", referenceOrder: "TRANSFER-BR2-04", reservedUntil: "2026-07-24" },
-    { id: "3", name: "Caramel Syrup", sku: "SY-CAR-02", category: "Syrups", reservedQty: 2, unit: "bottles", referenceOrder: "CATERING-9902", reservedUntil: "2026-07-25" },
-  ])
+  const [items, setItems] = useState<ReservedStockItem[]>([])
 
   const filtered = items.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -70,41 +66,47 @@ export default function ReservedStockPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
-                <tr>
-                  <th className="px-4 py-3">SKU</th>
-                  <th className="px-4 py-3">Item Name</th>
-                  <th className="px-4 py-3 text-right">Locked Quantity</th>
-                  <th className="px-4 py-3">Reference Doc</th>
-                  <th className="px-4 py-3 text-right">Reserved Until</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filtered.map(item => (
-                  <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3.5 font-mono text-xs font-semibold">{item.sku}</td>
-                    <td className="px-4 py-3.5 font-medium">{item.name}</td>
-                    <td className="px-4 py-3.5 text-right font-bold text-teal-600">{item.reservedQty} {item.unit}</td>
-                    <td className="px-4 py-3.5 font-semibold text-xs flex items-center gap-1.5 py-4">
-                      <span className="bg-indigo-500/10 text-indigo-700 px-2 py-0.5 rounded-sm">{item.referenceOrder}</span>
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-mono text-xs text-muted-foreground">{item.reservedUntil}</td>
-                    <td className="px-4 py-3.5 text-right">
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => handleRelease(item.id, item.name)}
-                        className="cursor-pointer h-7 text-xs text-rose-600 hover:bg-rose-500/10"
-                      >
-                        Release Lock
-                      </Button>
-                    </td>
+            {filtered.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground font-semibold">
+                No reserved or locked stock items.
+              </div>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
+                  <tr>
+                    <th className="px-4 py-3">SKU</th>
+                    <th className="px-4 py-3">Item Name</th>
+                    <th className="px-4 py-3 text-right">Locked Quantity</th>
+                    <th className="px-4 py-3">Reference Doc</th>
+                    <th className="px-4 py-3 text-right">Reserved Until</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map(item => (
+                    <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3.5 font-mono text-xs font-semibold">{item.sku}</td>
+                      <td className="px-4 py-3.5 font-medium">{item.name}</td>
+                      <td className="px-4 py-3.5 text-right font-bold text-teal-600">{item.reservedQty} {item.unit}</td>
+                      <td className="px-4 py-3.5 font-semibold text-xs flex items-center gap-1.5 py-4">
+                        <span className="bg-indigo-500/10 text-indigo-700 px-2 py-0.5 rounded-sm">{item.referenceOrder}</span>
+                      </td>
+                      <td className="px-4 py-3.5 text-right font-mono text-xs text-muted-foreground">{item.reservedUntil}</td>
+                      <td className="px-4 py-3.5 text-right">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => handleRelease(item.id, item.name)}
+                          className="cursor-pointer h-7 text-xs text-rose-600 hover:bg-rose-500/10"
+                        >
+                          Release Lock
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </CardContent>
       </Card>

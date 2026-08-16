@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { IconAdjustments, IconPlus, IconChevronDown } from "@tabler/icons-react"
+import { IconAdjustments, IconChevronDown } from "@tabler/icons-react"
 
 interface AdjustmentLog {
   id: string
@@ -23,11 +23,7 @@ export default function StockAdjustmentPage() {
   const [type, setType] = useState<"addition" | "subtraction">("addition")
   const [qty, setQty] = useState<number>(0)
   const [reason, setReason] = useState("Damaged")
-  
-  const [logs, setLogs] = useState<AdjustmentLog[]>([
-    { id: "1", sku: "CB-ARA-01", name: "Arabica Coffee Beans", type: "addition", qty: 10, reason: "Restock Correction", date: "2026-07-22 14:10" },
-    { id: "2", sku: "MK-WHL-01", name: "Whole Milk 1L", type: "subtraction", qty: 2, reason: "Spillage/Damaged", date: "2026-07-21 08:45" },
-  ])
+  const [logs, setLogs] = useState<AdjustmentLog[]>([])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,7 +74,7 @@ export default function StockAdjustmentPage() {
                 <Label htmlFor="adj-sku">Item SKU</Label>
                 <Input
                   id="adj-sku"
-                  placeholder="e.g. CB-ARA-01"
+                  placeholder="e.g. 000001"
                   value={sku}
                   onChange={(e) => setSku(e.target.value)}
                   required
@@ -89,7 +85,7 @@ export default function StockAdjustmentPage() {
                 <Label htmlFor="adj-name">Item Name</Label>
                 <Input
                   id="adj-name"
-                  placeholder="e.g. Arabica Coffee Beans"
+                  placeholder="e.g. Espresso Single Shot"
                   value={itemName}
                   onChange={(e) => setItemName(e.target.value)}
                   required
@@ -164,37 +160,43 @@ export default function StockAdjustmentPage() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
-                  <tr>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3">SKU</th>
-                    <th className="px-4 py-3">Item Name</th>
-                    <th className="px-4 py-3 text-right">Adjustment</th>
-                    <th className="px-4 py-3">Reason</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {logs.map(log => (
-                    <tr key={log.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{log.date}</td>
-                      <td className="px-4 py-3 font-mono text-xs font-semibold">{log.sku}</td>
-                      <td className="px-4 py-3 font-medium">{log.name}</td>
-                      <td className="px-4 py-3 text-right font-bold">
-                        <span className={log.type === "addition" ? "text-emerald-600" : "text-rose-500"}>
-                          {log.type === "addition" ? "+" : "-"}
-                          {log.qty}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center rounded-full bg-slate-500/10 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:text-slate-400">
-                          {log.reason}
-                        </span>
-                      </td>
+              {logs.length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground font-semibold">
+                  No adjustments recorded yet.
+                </div>
+              ) : (
+                <table className="w-full text-left text-sm">
+                  <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
+                    <tr>
+                      <th className="px-4 py-3">Date</th>
+                      <th className="px-4 py-3">SKU</th>
+                      <th className="px-4 py-3">Item Name</th>
+                      <th className="px-4 py-3 text-right">Adjustment</th>
+                      <th className="px-4 py-3">Reason</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y">
+                    {logs.map(log => (
+                      <tr key={log.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3 text-xs text-muted-foreground font-mono">{log.date}</td>
+                        <td className="px-4 py-3 font-mono text-xs font-semibold">{log.sku}</td>
+                        <td className="px-4 py-3 font-medium">{log.name}</td>
+                        <td className="px-4 py-3 text-right font-bold">
+                          <span className={log.type === "addition" ? "text-emerald-600" : "text-rose-500"}>
+                            {log.type === "addition" ? "+" : "-"}
+                            {log.qty}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center rounded-full bg-slate-500/10 px-2.5 py-0.5 text-xs font-medium text-slate-700 dark:text-slate-400">
+                            {log.reason}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -91,7 +91,7 @@ export default function InvoiceReceipt({ isOpen, onOpenChange, customer, saleBy,
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px] p-6 rounded-2xl overflow-y-auto max-h-[90vh]">
+      <DialogContent className="w-[95vw] sm:w-full max-w-[420px] p-4 sm:p-6 rounded-2xl overflow-y-auto max-h-[92vh]">
         {/* Style block to handle receipt isolated printing */}
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {

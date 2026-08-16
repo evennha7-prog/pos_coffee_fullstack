@@ -1,0 +1,32 @@
+# =============================================================================
+# Backend Server - Security & Git Ignore Configuration
+# =============================================================================
+
+# Dependencies
+node_modules/
+src/node_modules/
+
+# Environment Secrets
+.env
+.env*
+!.env.example
+
+# Build Output
+dist/
+build/
+
+# Uploads & Temp Media
+upload/*
+!upload/.gitkeep
+src/upload/*
+!src/upload/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Keys & Certificates
+*.pem
+*.key
+*.crt
+*.cert

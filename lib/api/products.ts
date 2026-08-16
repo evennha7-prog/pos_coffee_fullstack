@@ -1,31 +1,44 @@
-import { Product } from "./types"
+import { apiFetch } from "./client";
+import { Product, ApiResponse } from "./types";
 
-let mockProducts: Product[] = [
-  { id: "P-001", name: "Caramel Macchiato", price: 4.50, qty: 45, category: "Iced Drinks", icon: "☕", status: "In Stock" },
-  { id: "P-002", name: "Cappuccino Hot", price: 3.50, qty: 12, category: "Hot Coffee", icon: "☕", status: "Low Stock" },
-  { id: "P-003", name: "Butter Croissant", price: 2.80, qty: 0, category: "Bakery & Pastries", icon: "🥐", status: "Out of Stock" },
-  { id: "P-004", name: "Matcha Latte Iced", price: 4.20, qty: 60, category: "Iced Drinks", icon: "🍵", status: "In Stock" },
-]
-
-export async function getProducts(): Promise<Product[]> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  return [...mockProducts]
+export async function getProducts(params?: {
+  search?: string;
+  category_id?: number | string;
+  page?: number;
+  limit?: number;
+  sort?: string;
+}): Promise<Product[]> {
+  const res = await apiFetch<Product[]>("/products", { params });
+  return (res.result || res.data || []) as Product[];
 }
 
-export async function createProduct(prod: Product): Promise<Product> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  mockProducts.push(prod)
-  return prod
+export async function getProduct(id: number | string): Promise<Product | null> {
+  const res = await apiFetch<Product>(`/products/${id}`);
+  return res.result || null;
 }
 
-export async function updateProduct(prod: Product): Promise<Product> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  mockProducts = mockProducts.map((p) => (p.id === prod.id ? prod : p))
-  return prod
+export async function getProductByCode(code: string): Promise<Product | null> {
+  const res = await apiFetch<Product>(`/products/code/${code}`);
+  return res.result || null;
 }
 
-export async function deleteProduct(id: string): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  mockProducts = mockProducts.filter((p) => p.id !== id)
-  return true
+export async function createProduct(data: Partial<Product>): Promise<ApiResponse<Product>> {
+  return await apiFetch<Product>("/products", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProduct(id: number | string, data: Partial<Product>): Promise<ApiResponse<Product>> {
+  return await apiFetch<Product>(`/products/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProduct(id: number | string): Promise<boolean> {
+  const res = await apiFetch(`/products/${id}`, {
+    method: "DELETE",
+  });
+  return res.success;
 }

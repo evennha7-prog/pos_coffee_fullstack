@@ -52,14 +52,19 @@ import {
   IconBarcode,
   IconAlertCircle,
   IconCalendarX,
+  IconHistory,
+  IconTruckLoading,
+  IconArrowUpRight,
+  IconArrowDownRight,
+  IconPigMoney,
 } from "@tabler/icons-react"
 
 // This is sample data.
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Super Admin",
+    email: "super@coffee.com",
+    avatar: "/favicon.ico",
   },
   teams: [
     {
@@ -264,6 +269,24 @@ const data = {
             </div>
           ),
         },
+        {
+          title: "Stock record",
+          url: "/dashboard/stock/record",
+          icon: (
+            <div className="flex p-1 rounded-md bg-emerald-500/15 text-emerald-500">
+              <IconPackages className="size-3.5" />
+            </div>
+          ),
+        },
+        {
+          title: "Purchasing goods",
+          url: "/dashboard/report/purchasing-goods",
+          icon: (
+            <div className="flex p-1 rounded-md bg-teal-500/15 text-teal-500">
+              <IconShoppingCart className="size-3.5" />
+            </div>
+          ),
+        },
       ],
     },
     {
@@ -367,11 +390,38 @@ const data = {
           ),
         },
         {
-          title: "Stock Report",
-          url: "/dashboard/report/stock",
+          title: "History Sale",
+          url: "/dashboard/report/history-sale",
+          icon: (
+            <div className="flex p-1 rounded-md bg-indigo-500/15 text-indigo-500">
+              <IconHistory className="size-3.5" />
+            </div>
+          ),
+        },
+        {
+          title: "Income",
+          url: "/dashboard/report/income",
           icon: (
             <div className="flex p-1 rounded-md bg-emerald-500/15 text-emerald-500">
-              <IconPackages className="size-3.5" />
+              <IconArrowUpRight className="size-3.5" />
+            </div>
+          ),
+        },
+        {
+          title: "Expenses",
+          url: "/dashboard/report/expenses",
+          icon: (
+            <div className="flex p-1 rounded-md bg-rose-500/15 text-rose-500">
+              <IconArrowDownRight className="size-3.5" />
+            </div>
+          ),
+        },
+        {
+          title: "Profit",
+          url: "/dashboard/report/profit",
+          icon: (
+            <div className="flex p-1 rounded-md bg-purple-500/15 text-purple-500">
+              <IconPigMoney className="size-3.5" />
             </div>
           ),
         },

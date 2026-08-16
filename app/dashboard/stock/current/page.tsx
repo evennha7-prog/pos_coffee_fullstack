@@ -34,11 +34,11 @@ export default function CurrentStockPage() {
   useEffect(() => {
     setLoading(true)
     getStockItems()
-      .then((data) => {
+      .then((data: any) => {
         setItems(data)
         setLoading(false)
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error("Error loading stock:", err)
         setLoading(false)
       })

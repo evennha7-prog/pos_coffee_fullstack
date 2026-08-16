@@ -22,11 +22,11 @@ const fileFilter = (
   file: Express.Multer.File,
   cb: multer.FileFilterCallback
 ) => {
-  const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif"];
+  const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif", "image/webp"];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only JPEG, PNG, JPG and GIF are allowed"));
+    cb(new Error("Only JPEG, PNG, JPG, WEBP and GIF are allowed"));
   }
 };
 
@@ -71,7 +71,8 @@ export const uploadFile = (req: Request, res: Response) => {
 
 export const removeFile = (req: Request, res: Response) => {
   try {
-    const imagePath = path.join(__dirname, "../upload", req.params.imageUrl);
+    const filename = String(req.params.imageUrl);
+    const imagePath = path.join(__dirname, "../upload", filename);
 
     if (fs.existsSync(imagePath)) {
       fs.unlinkSync(imagePath);
@@ -91,4 +92,10 @@ export const removeFile = (req: Request, res: Response) => {
       error: "Error while deleting image!",
     });
   }
+};
+
+export default {
+  upload,
+  uploadFile,
+  removeFile,
 };

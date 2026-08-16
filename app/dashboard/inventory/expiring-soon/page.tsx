@@ -18,11 +18,7 @@ interface ExpiringItem {
 
 export default function ExpiringSoonPage() {
   const [search, setSearch] = useState("")
-  const [items, setItems] = useState<ExpiringItem[]>([
-    { id: "1", name: "Fresh Dairy Milk 1L", batchNo: "B-MILK-902", qty: 24, expiryDate: "2026-07-26", daysRemaining: 3, unit: "packs" },
-    { id: "2", name: "Whipped Cream Cans", batchNo: "B-CRM-104", qty: 8, expiryDate: "2026-07-28", daysRemaining: 5, unit: "cans" },
-    { id: "3", name: "Caramel Sauce Syrup", batchNo: "B-SYR-881", qty: 5, expiryDate: "2026-08-05", daysRemaining: 13, unit: "bottles" },
-  ])
+  const [items, setItems] = useState<ExpiringItem[]>([])
 
   const filtered = items.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -68,52 +64,58 @@ export default function ExpiringSoonPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
-                <tr>
-                  <th className="px-4 py-3">Batch No</th>
-                  <th className="px-4 py-3">Item Name</th>
-                  <th className="px-4 py-3 text-right">Quantity</th>
-                  <th className="px-4 py-3">Expiry Date</th>
-                  <th className="px-4 py-3 text-right">Days Left</th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filtered.map(item => (
-                  <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3.5 font-mono text-xs font-semibold">{item.batchNo}</td>
-                    <td className="px-4 py-3.5 font-medium">{item.name}</td>
-                    <td className="px-4 py-3.5 text-right font-bold">{item.qty} {item.unit}</td>
-                    <td className="px-4 py-3.5 font-semibold text-xs">{item.expiryDate}</td>
-                    <td className="px-4 py-3.5 text-right font-bold text-orange-600">{item.daysRemaining} days</td>
-                    <td className="px-4 py-3.5 text-center">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          item.daysRemaining <= 3
-                            ? "bg-red-500/10 text-red-700 dark:text-red-400"
-                            : "bg-orange-500/10 text-orange-700 dark:text-orange-400"
-                        }`}
-                      >
-                        <IconAlertCircle className="h-3 w-3" />
-                        {item.daysRemaining <= 3 ? "Critical Expiry" : "Expiring"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => handleDiscard(item.id, item.name)}
-                        className="cursor-pointer h-7 text-xs text-destructive hover:bg-destructive/10"
-                      >
-                        Discard Batch
-                      </Button>
-                    </td>
+            {filtered.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground font-semibold">
+                No expiring batches recorded.
+              </div>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
+                  <tr>
+                    <th className="px-4 py-3">Batch No</th>
+                    <th className="px-4 py-3">Item Name</th>
+                    <th className="px-4 py-3 text-right">Quantity</th>
+                    <th className="px-4 py-3">Expiry Date</th>
+                    <th className="px-4 py-3 text-right">Days Left</th>
+                    <th className="px-4 py-3 text-center">Status</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map(item => (
+                    <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3.5 font-mono text-xs font-semibold">{item.batchNo}</td>
+                      <td className="px-4 py-3.5 font-medium">{item.name}</td>
+                      <td className="px-4 py-3.5 text-right font-bold">{item.qty} {item.unit}</td>
+                      <td className="px-4 py-3.5 font-semibold text-xs">{item.expiryDate}</td>
+                      <td className="px-4 py-3.5 text-right font-bold text-orange-600">{item.daysRemaining} days</td>
+                      <td className="px-4 py-3.5 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            item.daysRemaining <= 3
+                              ? "bg-red-500/10 text-red-700 dark:text-red-400"
+                              : "bg-orange-500/10 text-orange-700 dark:text-orange-400"
+                          }`}
+                        >
+                          <IconAlertCircle className="h-3 w-3" />
+                          {item.daysRemaining <= 3 ? "Critical Expiry" : "Expiring"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => handleDiscard(item.id, item.name)}
+                          className="cursor-pointer h-7 text-xs text-destructive hover:bg-destructive/10"
+                        >
+                          Discard Batch
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </CardContent>
       </Card>

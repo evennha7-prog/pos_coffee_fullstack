@@ -1,8 +1,6 @@
 import { Response, NextFunction } from "express";
-import calculatePaymentStatus from "../helpers/calculatePaymentStatus";
-import Product from "../models/product.model";
 import Sale from "../models/sale.model";
-import { generateInvoiceNumber } from "./counter.controller";
+import Product from "../models/product.model";
 import { AuthRequest } from "../types";
 
 export const create = async (
@@ -11,73 +9,44 @@ export const create = async (
   next: NextFunction
 ) => {
   try {
-    let { items, totalCost, paidAmount, customer } = req.body;
-    if (!paidAmount) {
-      paidAmount = 0;
-    }
+    let { items, totalCost, paidAmount, customer_id, customer } = req.body;
+    const customerId = customer_id || customer || null;
+    const userId = req.user?.id || 1;
 
-    // Step 1: Fetch all products to validate stock
-    const productIds = items.map((it: any) => it.product);
-    const products = await Product.find({ _id: { $in: productIds } });
-
-    // Step 2: Validate stock for each product
-    const productUpdates: any[] = [];
-    for (const item of items) {
-      const product = products.find(
-        (p) => p._id.toString() === item.product.toString()
-      );
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          error: `Product not found with ID: ${item.product}`,
-        });
-      }
-      if (product.currentStock < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          error: `Insufficient stock for product: ${product.name}`,
-        });
-      }
-
-      productUpdates.push({
-        updateOne: {
-          filter: { _id: product._id },
-          update: { $inc: { currentStock: -item.quantity } },
-        },
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Items array is required to process sale",
       });
     }
 
-    // Step 3: Execute stock updates in bulk
-    await Product.bulkWrite(productUpdates);
+    if (totalCost === undefined || totalCost === null) {
+      return res.status(400).json({
+        success: false,
+        error: "Total cost is required",
+      });
+    }
 
-    // Step 4: Calculate payment status
-    const paymentStatus = calculatePaymentStatus(totalCost, paidAmount);
+    const formattedItems = items.map((it: any) => ({
+      product_id: Number(it.product_id || it.product || it.id),
+      quantity: Number(it.quantity || it.qty || 1),
+      unit_price: Number(it.unit_price || it.price || 0),
+      total_price: Number(it.total_price || (it.unit_price || it.price || 0) * (it.quantity || it.qty || 1)),
+    }));
 
-    // Step 5: Generate invoice number
-    const invoiceNumber = await generateInvoiceNumber();
-
-    // Step 6: Calculate due & change amounts
-    const dueAmount = Math.max(0, totalCost - paidAmount);
-    const changeAmount = Math.max(0, paidAmount - totalCost);
-
-    // Step 7: Create new Sale
     const newSale = await Sale.create({
-      user: req.user?._id,
-      customer,
-      invoiceNumber,
-      paymentStatus,
-      dueAmount,
-      changeAmount,
-      paidAmount,
-      totalCost,
-      items,
+      userId,
+      customerId: customerId ? Number(customerId) : null,
+      totalCost: Number(totalCost),
+      paidAmount: Number(paidAmount) || 0,
+      items: formattedItems,
     });
 
     res.status(201).json({
       success: true,
       result: newSale,
     });
-  } catch (error) {
+  } catch (error: any) {
     next(error);
   }
 };
@@ -88,37 +57,17 @@ export const findAll = async (
   next: NextFunction
 ) => {
   try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    const querySearch: any = {};
+    const page = req.query.page ? Number(req.query.page) : 1;
+    const limit = req.query.limit ? Number(req.query.limit) : 20;
+    const search = req.query.search ? String(req.query.search) : "";
 
-    if (req.query.search) {
-      querySearch["$or"] = [
-        { invoiceNumber: { $regex: req.query.search, $options: "i" } },
-      ];
-    }
-
-    const docs = await Sale.find(querySearch)
-      .populate("user", "username role")
-      .populate("customer", "name phone")
-      .populate({
-        path: "items",
-        populate: {
-          path: "product",
-          select: "name imageUrl salePrice costPrice currentStock",
-        },
-      })
-      .skip(skip)
-      .limit(limit)
-      .sort({ _id: -1 })
-      .exec();
-
-    const totalItems = await Sale.find(querySearch).countDocuments();
-    const totalPage = Math.ceil(totalItems / limit);
+    const docs = await Sale.findAll({ page, limit, search });
+    const totalItem = await Sale.countAll(search);
+    const totalPage = Math.ceil(totalItem / limit);
 
     res.status(200).json({
       success: true,
+      totalItem,
       totalPage,
       result: docs,
     });
@@ -133,22 +82,13 @@ export const findOne = async (
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
-    const doc = await Sale.findById(id)
-      .populate("user", "username role")
-      .populate("customer", "name phone")
-      .populate({
-        path: "items",
-        populate: {
-          path: "product",
-          select: "name imageUrl salePrice costPrice currentStock",
-        },
-      });
+    const id = String(req.params.id);
+    const doc = await Sale.findById(id);
 
     if (!doc) {
       return res.status(404).json({
         success: false,
-        error: "Document not found with that ID!",
+        error: "Sale transaction not found with that ID!",
       });
     }
     res.status(200).json({
@@ -167,16 +107,16 @@ export const checkStock = async (
 ) => {
   try {
     const stock = Number(req.query.stock);
-    const product = req.query.product as string;
+    const productId = String(req.query.product);
 
-    if (!stock || !product) {
+    if (!stock || !productId) {
       return res.status(400).json({
         success: false,
-        error: "Please provide stock and product",
+        error: "Please provide stock quantity and product ID",
       });
     }
 
-    const doc = await Product.findById(product);
+    const doc = await Product.findById(productId);
     if (!doc) {
       return res.status(404).json({
         success: false,
@@ -184,16 +124,16 @@ export const checkStock = async (
       });
     }
 
-    if (doc.currentStock < stock) {
+    if (doc.current_stock < stock) {
       return res.status(400).json({
         success: false,
-        error: `Insufficient stock for product: ${doc.name}`,
+        error: `Insufficient stock for product: ${doc.name}. Available: ${doc.current_stock}`,
       });
     }
 
     res.status(200).json({
       success: true,
-      result: {},
+      result: { availableStock: doc.current_stock },
     });
   } catch (error) {
     next(error);
@@ -206,40 +146,23 @@ export const addPayment = async (
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
+    const id = String(req.params.id);
     const paidAmount = Number(req.body?.paidAmount);
 
-    if (!paidAmount) {
+    if (!paidAmount || paidAmount <= 0) {
       return res.status(400).json({
         success: false,
-        error: "Please provide paid amount!",
+        error: "Please provide a valid paid amount!",
       });
     }
 
-    const doc = await Sale.findById(id);
-    if (!doc) {
+    const updatedSale = await Sale.addPayment(id, paidAmount);
+    if (!updatedSale) {
       return res.status(404).json({
         success: false,
-        error: "Sale not found with that ID!",
+        error: "Sale transaction not found with that ID!",
       });
     }
-
-    const totalCost = doc.totalCost;
-    const newPaidAmount = (doc.paidAmount || 0) + paidAmount;
-    const newDueAmount = Math.max(0, totalCost - newPaidAmount);
-    const changeAmount = Math.max(0, newPaidAmount - totalCost);
-    const paymentStatus = calculatePaymentStatus(totalCost, newPaidAmount);
-
-    const updatedSale = await Sale.findByIdAndUpdate(
-      id,
-      {
-        paidAmount: newPaidAmount,
-        paymentStatus: paymentStatus,
-        dueAmount: newDueAmount,
-        changeAmount: changeAmount,
-      },
-      { new: true }
-    );
 
     res.status(200).json({
       success: true,
@@ -248,4 +171,12 @@ export const addPayment = async (
   } catch (error) {
     next(error);
   }
+};
+
+export default {
+  create,
+  findAll,
+  findOne,
+  checkStock,
+  addPayment,
 };

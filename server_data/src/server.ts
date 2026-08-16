@@ -5,7 +5,7 @@ import { connectToDatabase } from "./database/db";
 // Config dotenv
 dotenv.config();
 
-// Connect to MongoDB
+// Connect to MySQL Database
 connectToDatabase();
 
 const port = process.env.PORT || 5000;

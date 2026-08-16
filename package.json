@@ -3,10 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "concurrently -n \"next,backend\" -c \"blue,green\" \"next dev --webpack\" \"npm --prefix server_data/src run dev\"",
+    "dev:frontend": "next dev --webpack",
+    "dev:backend": "npm --prefix server_data/src run dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:migrate": "npm --prefix server_data/src run db:migrate",
+    "db:seeder": "npm --prefix server_data/src run db:seeder"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -27,6 +31,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^10.0.5",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",

@@ -19,10 +19,7 @@ interface OverstockItem {
 
 export default function OverstockPage() {
   const [search, setSearch] = useState("")
-  const [items, setItems] = useState<OverstockItem[]>([
-    { id: "1", name: "Paper Cups 8oz", sku: "CP-PAP-08", category: "Packaging", currentQty: 3200, maxLimit: 2000, unit: "pcs" },
-    { id: "2", name: "Plastic Straws", sku: "CP-STR-01", category: "Packaging", currentQty: 5000, maxLimit: 3000, unit: "pcs" },
-  ])
+  const [items, setItems] = useState<OverstockItem[]>([])
 
   const filtered = items.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -67,42 +64,48 @@ export default function OverstockPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
-                <tr>
-                  <th className="px-4 py-3">SKU</th>
-                  <th className="px-4 py-3">Item Name</th>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3 text-right">Current Qty</th>
-                  <th className="px-4 py-3 text-right">Max Threshold</th>
-                  <th className="px-4 py-3 text-center">Status</th>
-                  <th className="px-4 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filtered.map(item => (
-                  <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3.5 font-mono text-xs font-semibold">{item.sku}</td>
-                    <td className="px-4 py-3.5 font-medium">{item.name}</td>
-                    <td className="px-4 py-3.5 text-muted-foreground">{item.category}</td>
-                    <td className="px-4 py-3.5 text-right font-bold text-cyan-600">{item.currentQty} {item.unit}</td>
-                    <td className="px-4 py-3.5 text-right font-semibold">{item.maxLimit} {item.unit}</td>
-                    <td className="px-4 py-3.5 text-center">
-                      <span className="inline-flex items-center rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-xs font-medium text-cyan-600">
-                        Overstock
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <Link href={`/dashboard/stock/adjustment?sku=${item.sku}`}>
-                        <Button size="sm" variant="outline" className="cursor-pointer h-7 text-xs">
-                          Adjust
-                        </Button>
-                      </Link>
-                    </td>
+            {filtered.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground font-semibold">
+                No overstocked items found. Inventory capacity is well balanced!
+              </div>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
+                  <tr>
+                    <th className="px-4 py-3">SKU</th>
+                    <th className="px-4 py-3">Item Name</th>
+                    <th className="px-4 py-3">Category</th>
+                    <th className="px-4 py-3 text-right">Current Qty</th>
+                    <th className="px-4 py-3 text-right">Max Threshold</th>
+                    <th className="px-4 py-3 text-center">Status</th>
+                    <th className="px-4 py-3 text-right">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map(item => (
+                    <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3.5 font-mono text-xs font-semibold">{item.sku}</td>
+                      <td className="px-4 py-3.5 font-medium">{item.name}</td>
+                      <td className="px-4 py-3.5 text-muted-foreground">{item.category}</td>
+                      <td className="px-4 py-3.5 text-right font-bold text-cyan-600">{item.currentQty} {item.unit}</td>
+                      <td className="px-4 py-3.5 text-right font-semibold">{item.maxLimit} {item.unit}</td>
+                      <td className="px-4 py-3.5 text-center">
+                        <span className="inline-flex items-center rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-xs font-medium text-cyan-600">
+                          Overstock
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <Link href={`/dashboard/stock/adjustment?sku=${item.sku}`}>
+                          <Button size="sm" variant="outline" className="cursor-pointer h-7 text-xs">
+                            Adjust
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </CardContent>
       </Card>

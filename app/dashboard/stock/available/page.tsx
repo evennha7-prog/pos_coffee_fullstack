@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { IconCircleCheck, IconSearch, IconShoppingCart } from "@tabler/icons-react"
 import Link from "next/link"
-import { getStockItems } from "@/lib/api"
+import { getStockItems, StockItem } from "@/lib/api"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function AvailableStockPage() {
@@ -17,9 +17,9 @@ export default function AvailableStockPage() {
   useEffect(() => {
     setLoading(true)
     getStockItems()
-      .then((data) => {
+      .then((data: StockItem[]) => {
         // Map StockItem to AvailableStockItem fields
-        const mapped = data.map((item) => ({
+        const mapped = data.map((item: StockItem) => ({
           id: item.id,
           name: item.name,
           sku: item.sku,
@@ -32,7 +32,7 @@ export default function AvailableStockPage() {
         setItems(mapped)
         setLoading(false)
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error("Error loading available stock:", err)
         setLoading(false)
       })
@@ -52,7 +52,7 @@ export default function AvailableStockPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Available Stock</h1>
-            <p className="text-sm text-muted-foreground">Net quantity available for customer sales (Physical Count minus Reserved/Catering stock)</p>
+            <p className="text-sm text-muted-foreground">Net quantity available for customer sales from MySQL database</p>
           </div>
         </div>
         <Link href="/dashboard/sale/pos">

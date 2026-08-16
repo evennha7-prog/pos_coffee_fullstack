@@ -1,31 +1,33 @@
-import { Customer } from "./types"
+import { apiFetch } from "./client";
+import { Customer, ApiResponse } from "./types";
 
-let mockCustomers: Customer[] = [
-  { id: "C-0001", name: "Sophea Chan", email: "sophea@gmail.com", phone: "012345678", points: 120, spent: 45.00 },
-  { id: "C-0002", name: "David Miller", email: "david@example.com", phone: "098765432", points: 80, spent: 32.50 },
-  { id: "C-0003", name: "Vannak Sam", email: "vannak.sam@gmail.com", phone: "088123456", points: 250, spent: 110.00 },
-]
-
-export async function getCustomers(): Promise<Customer[]> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  return [...mockCustomers]
+export async function getCustomers(params?: { search?: string; page?: number; limit?: number }): Promise<Customer[]> {
+  const res = await apiFetch<Customer[]>("/customers", { params });
+  return (res.result || res.data || []) as Customer[];
 }
 
-export async function createCustomer(cust: Omit<Customer, "id">): Promise<Customer> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  const newCust = { ...cust, id: "C-" + String(mockCustomers.length + 1).padStart(4, "0") }
-  mockCustomers.push(newCust)
-  return newCust
+export async function getCustomer(id: number | string): Promise<Customer | null> {
+  const res = await apiFetch<Customer>(`/customers/${id}`);
+  return res.result || null;
 }
 
-export async function updateCustomer(cust: Customer): Promise<Customer> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  mockCustomers = mockCustomers.map((c) => (c.id === cust.id ? cust : c))
-  return cust
+export async function createCustomer(data: Partial<Customer>): Promise<ApiResponse<Customer>> {
+  return await apiFetch<Customer>("/customers", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
-export async function deleteCustomer(id: string): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  mockCustomers = mockCustomers.filter((c) => c.id !== id)
-  return true
+export async function updateCustomer(id: number | string, data: Partial<Customer>): Promise<ApiResponse<Customer>> {
+  return await apiFetch<Customer>(`/customers/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteCustomer(id: number | string): Promise<boolean> {
+  const res = await apiFetch(`/customers/${id}`, {
+    method: "DELETE",
+  });
+  return res.success;
 }

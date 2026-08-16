@@ -1,6 +1,4 @@
 import { Response, NextFunction } from "express";
-import calculatePaymentStatus from "../helpers/calculatePaymentStatus";
-import Product from "../models/product.model";
 import Purchase from "../models/purchase.model";
 import { AuthRequest } from "../types";
 
@@ -10,38 +8,52 @@ export const create = async (
   next: NextFunction
 ) => {
   try {
-    const { items, totalCost, purchaseStatus } = req.body;
-    const paymentStatus = calculatePaymentStatus(totalCost, 0);
+    const { supplier_id, supplier, invoice_number, invoiceNumber, purchase_date, purchaseDate, total_cost, totalCost, paid_amount, paidAmount, purchase_status, purchaseStatus, items } = req.body;
+    const userId = req.user?.id || 1;
 
-    // 1). update stock product if purchase status equal received
-    if (purchaseStatus === "received" && Array.isArray(items)) {
-      for (const item of items) {
-        const product = await Product.findById(item.product);
-        if (!product) {
-          return res.status(404).json({
-            success: false,
-            error: `Product with ID ${item.product} not found!`,
-          });
-        }
-        product.currentStock = (product.currentStock || 0) + item.quantity;
-        await product.save();
-      }
+    const finalSupplierId = Number(supplier_id || supplier);
+    const finalInvoiceNumber = invoice_number || invoiceNumber;
+    const finalTotalCost = Number(total_cost !== undefined ? total_cost : totalCost);
+    const finalPaidAmount = Number(paid_amount !== undefined ? paid_amount : paidAmount || 0);
+    const finalPurchaseStatus = purchase_status || purchaseStatus || "pending";
+
+    if (!finalSupplierId || !finalInvoiceNumber || finalTotalCost === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: "Supplier, invoice number, and total cost are required",
+      });
     }
 
-    // 2). Insert purchase record into the database
-    const newDoc = await Purchase.create({
-      ...req.body,
-      paymentStatus,
-      dueAmount: totalCost,
-      user: req.user?._id,
-      items,
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "Purchase must contain at least one item",
+      });
+    }
+
+    const formattedItems = items.map((it: any) => ({
+      product_id: Number(it.product_id || it.product || it.id),
+      quantity: Number(it.quantity || it.qty || 1),
+      unit_price: Number(it.unit_price || it.price || 0),
+      total_price: Number(it.total_price || (it.unit_price || it.price || 0) * (it.quantity || it.qty || 1)),
+    }));
+
+    const newPurchase = await Purchase.create({
+      userId,
+      supplierId: finalSupplierId,
+      invoiceNumber: finalInvoiceNumber,
+      purchaseDate: purchase_date || purchaseDate,
+      totalCost: finalTotalCost,
+      paidAmount: finalPaidAmount,
+      purchaseStatus: finalPurchaseStatus,
+      items: formattedItems,
     });
 
     res.status(201).json({
       success: true,
-      result: newDoc,
+      result: newPurchase,
     });
-  } catch (error) {
+  } catch (error: any) {
     next(error);
   }
 };
@@ -52,37 +64,17 @@ export const findAll = async (
   next: NextFunction
 ) => {
   try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    const querySearch: any = {};
+    const page = req.query.page ? Number(req.query.page) : 1;
+    const limit = req.query.limit ? Number(req.query.limit) : 20;
+    const search = req.query.search ? String(req.query.search) : "";
 
-    if (req.query.search) {
-      querySearch["$or"] = [
-        { invoiceNumber: { $regex: req.query.search, $options: "i" } },
-      ];
-    }
-
-    const docs = await Purchase.find(querySearch)
-      .populate("user", "username role")
-      .populate("supplier", "businessName phone")
-      .populate({
-        path: "items",
-        populate: {
-          path: "product",
-          select: "name imageUrl salePrice costPrice currentStock",
-        },
-      })
-      .skip(skip)
-      .limit(limit)
-      .sort({ _id: -1 })
-      .exec();
-
-    const totalItems = await Purchase.find(querySearch).countDocuments();
-    const totalPage = Math.ceil(totalItems / limit);
+    const docs = await Purchase.findAll({ page, limit, search });
+    const totalItem = await Purchase.countAll(search);
+    const totalPage = Math.ceil(totalItem / limit);
 
     res.status(200).json({
       success: true,
+      totalItem,
       totalPage,
       result: docs,
     });
@@ -97,22 +89,13 @@ export const findOne = async (
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
-    const doc = await Purchase.findById(id)
-      .populate("user", "username role")
-      .populate("supplier", "businessName phone")
-      .populate({
-        path: "items",
-        populate: {
-          path: "product",
-          select: "name imageUrl salePrice costPrice currentStock",
-        },
-      });
+    const id = String(req.params.id);
+    const doc = await Purchase.findById(id);
 
     if (!doc) {
       return res.status(404).json({
         success: false,
-        error: "Document not found with that ID!",
+        error: "Purchase order not found with that ID!",
       });
     }
     res.status(200).json({
@@ -130,49 +113,28 @@ export const updatePurchaseStatus = async (
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
-    const { purchaseStatus } = req.body;
+    const id = String(req.params.id);
+    const { purchaseStatus, purchase_status } = req.body;
+    const status = purchaseStatus || purchase_status;
 
-    const doc = await Purchase.findById(id);
-    if (!doc) {
-      return res.status(404).json({
-        success: false,
-        error: "No document found with that ID",
-      });
-    }
-
-    // 1. check if purchase status is already received
-    if (doc.purchaseStatus === "received") {
+    if (!status) {
       return res.status(400).json({
         success: false,
-        error: "Purchase status is already received",
+        error: "New purchase status is required",
       });
     }
 
-    // 2. update stock
-    if (purchaseStatus === "received" && Array.isArray(doc.items)) {
-      for (const item of doc.items) {
-        const product = await Product.findById(item.product);
-        if (!product) {
-          return res.status(404).json({
-            success: false,
-            error: `Product with ID ${item.product} not found!`,
-          });
-        }
-        product.currentStock = (product.currentStock || 0) + item.quantity;
-        await product.save();
-      }
+    const updated = await Purchase.updatePurchaseStatus(id, status);
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        error: "Purchase order not found with that ID!",
+      });
     }
-
-    const newDoc = await Purchase.findByIdAndUpdate(
-      id,
-      { purchaseStatus },
-      { new: true }
-    );
 
     res.status(200).json({
       success: true,
-      result: newDoc,
+      result: updated,
     });
   } catch (error) {
     next(error);
@@ -185,46 +147,37 @@ export const addPayment = async (
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
-    const paidAmount = Number(req.body?.paidAmount);
+    const id = String(req.params.id);
+    const paidAmount = Number(req.body?.paidAmount || req.body?.paid_amount);
 
-    if (!paidAmount) {
+    if (!paidAmount || paidAmount <= 0) {
       return res.status(400).json({
         success: false,
-        error: "Please provide paid amount!",
+        error: "Please provide a valid paid amount!",
       });
     }
 
-    const purchase = await Purchase.findById(id);
-    if (!purchase) {
+    const updated = await Purchase.addPayment(id, paidAmount);
+    if (!updated) {
       return res.status(404).json({
         success: false,
-        error: "Purchase not found with that ID!",
+        error: "Purchase order not found with that ID!",
       });
     }
-
-    const totalCost = purchase.totalCost;
-    const newPaidAmount = (purchase.paidAmount || 0) + paidAmount;
-    const newDueAmount = Math.max(0, totalCost - newPaidAmount);
-    const changeAmount = Math.max(0, newPaidAmount - totalCost);
-    const paymentStatus = calculatePaymentStatus(totalCost, newPaidAmount);
-
-    const updatedPurchase = await Purchase.findByIdAndUpdate(
-      id,
-      {
-        paidAmount: newPaidAmount,
-        paymentStatus: paymentStatus,
-        dueAmount: newDueAmount,
-        changeAmount: changeAmount,
-      },
-      { new: true }
-    );
 
     res.status(200).json({
       success: true,
-      result: updatedPurchase,
+      result: updated,
     });
   } catch (error) {
     next(error);
   }
+};
+
+export default {
+  create,
+  findAll,
+  findOne,
+  updatePurchaseStatus,
+  addPayment,
 };

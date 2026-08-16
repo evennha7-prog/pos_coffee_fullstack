@@ -1,46 +1,36 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { IconRefresh, IconSearch } from "@tabler/icons-react"
-
-interface ReorderItem {
-  id: string
-  name: string
-  sku: string
-  category: string
-  currentQty: number
-  reorderLevel: number
-  unit: string
-}
+import { IconRefresh, IconSearch, IconLoader2 } from "@tabler/icons-react"
+import { getProducts, updateProduct, Product } from "@/lib/api"
 
 export default function ReorderLevelPage() {
   const [search, setSearch] = useState("")
-  const [items, setItems] = useState<ReorderItem[]>([
-    { id: "1", name: "Arabica Coffee Beans", sku: "CB-ARA-01", category: "Coffee Beans", currentQty: 8, reorderLevel: 20, unit: "kg" },
-    { id: "2", name: "Robusta Coffee Beans", sku: "CB-ROB-01", category: "Coffee Beans", currentQty: 25, reorderLevel: 20, unit: "kg" },
-    { id: "3", name: "Whole Milk 1L", sku: "MK-WHL-01", category: "Dairy", currentQty: 12, reorderLevel: 30, unit: "packs" },
-    { id: "4", name: "Caramel Syrup", sku: "SY-CAR-02", category: "Syrups", currentQty: 3, reorderLevel: 10, unit: "bottles" },
-  ])
+  const [items, setItems] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editValue, setEditValue] = useState<number>(0)
-
-  const handleEdit = (id: string, currentVal: number) => {
-    setEditingId(id)
-    setEditValue(currentVal)
+  const fetchProducts = async () => {
+    try {
+      setLoading(true)
+      const data = await getProducts()
+      setItems(data)
+    } catch (err) {
+      console.error("Failed to load products for reorder levels:", err)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleSave = (id: string) => {
-    setItems(items.map(item => item.id === id ? { ...item, reorderLevel: editValue } : item))
-    setEditingId(null)
-  }
+  useEffect(() => {
+    fetchProducts()
+  }, [])
 
   const filtered = items.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase()) ||
-    item.sku.toLowerCase().includes(search.toLowerCase())
+    item.code.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
@@ -52,7 +42,7 @@ export default function ReorderLevelPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Reorder Levels</h1>
-            <p className="text-sm text-muted-foreground">Manage and configure safety stock replenishment trigger points</p>
+            <p className="text-sm text-muted-foreground">Manage and monitor safety stock replenishment trigger points in MySQL</p>
           </div>
         </div>
       </div>
@@ -61,7 +51,7 @@ export default function ReorderLevelPage() {
         <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="text-base font-semibold">Replenishment Configuration</CardTitle>
-            <CardDescription>Adjust quantity trigger points that alert purchase requirements</CardDescription>
+            <CardDescription>Monitor current stock vs safety reorder thresholds</CardDescription>
           </div>
           <div className="relative w-full sm:w-64">
             <IconSearch className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -76,63 +66,58 @@ export default function ReorderLevelPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
-                <tr>
-                  <th className="px-4 py-3">SKU</th>
-                  <th className="px-4 py-3">Item Name</th>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3 text-right">Current Qty</th>
-                  <th className="px-4 py-3 text-right w-44">Reorder Level</th>
-                  <th className="px-4 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filtered.map(item => (
-                  <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3.5 font-mono text-xs font-semibold">{item.sku}</td>
-                    <td className="px-4 py-3.5 font-medium">{item.name}</td>
-                    <td className="px-4 py-3.5 text-muted-foreground">{item.category}</td>
-                    <td className="px-4 py-3.5 text-right font-semibold">{item.currentQty} {item.unit}</td>
-                    <td className="px-4 py-3.5 text-right">
-                      {editingId === item.id ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <Input
-                            type="number"
-                            value={editValue}
-                            onChange={(e) => setEditValue(parseInt(e.target.value) || 0)}
-                            className="h-8 w-24 text-right pr-2"
-                          />
-                          <span className="text-xs text-muted-foreground">{item.unit}</span>
-                        </div>
-                      ) : (
-                        <span className="font-bold text-foreground">{item.reorderLevel} {item.unit}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      {editingId === item.id ? (
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleSave(item.id)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer h-7 text-xs"
-                        >
-                          Save
-                        </Button>
-                      ) : (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => handleEdit(item.id, item.reorderLevel)}
-                          className="cursor-pointer h-7 text-xs"
-                        >
-                          Change
-                        </Button>
-                      )}
-                    </td>
+            {loading ? (
+              <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+                <IconLoader2 className="h-5 w-5 animate-spin text-primary" />
+                <span>Loading products from MySQL...</span>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground font-semibold">
+                No products found in database.
+              </div>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
+                  <tr>
+                    <th className="px-4 py-3">Code</th>
+                    <th className="px-4 py-3">Item Name</th>
+                    <th className="px-4 py-3">Category</th>
+                    <th className="px-4 py-3 text-right">Current Stock</th>
+                    <th className="px-4 py-3 text-right">Safety Threshold</th>
+                    <th className="px-4 py-3 text-center">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map(item => {
+                    const current = item.current_stock ?? item.stock ?? 0
+                    const isLow = current < 15
+                    return (
+                      <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3.5 font-mono text-xs font-semibold">{item.code}</td>
+                        <td className="px-4 py-3.5 font-medium flex items-center gap-2">
+                          <span>{item.image_url || item.icon || "☕"}</span>
+                          <span>{item.name}</span>
+                        </td>
+                        <td className="px-4 py-3.5 text-muted-foreground">{item.categoryName || item.category || "General"}</td>
+                        <td className="px-4 py-3.5 text-right font-bold font-mono text-foreground">{current} pcs</td>
+                        <td className="px-4 py-3.5 text-right font-semibold text-muted-foreground font-mono">15 pcs</td>
+                        <td className="px-4 py-3.5 text-center">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              isLow
+                                ? "bg-amber-500/10 text-amber-600"
+                                : "bg-emerald-500/10 text-emerald-600"
+                            }`}
+                          >
+                            {isLow ? "Needs Reorder" : "Optimal"}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
         </CardContent>
       </Card>

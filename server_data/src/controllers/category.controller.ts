@@ -7,7 +7,15 @@ export const create = async (
   next: NextFunction
 ) => {
   try {
-    const newDoc = await Category.create(req.body);
+    const { name, note } = req.body;
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        error: "Category name is required",
+      });
+    }
+
+    const newDoc = await Category.create({ name, note });
     res.status(201).json({
       success: true,
       result: newDoc,
@@ -23,28 +31,17 @@ export const findAll = async (
   next: NextFunction
 ) => {
   try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    const querySearch: any = {};
+    const page = req.query.page ? Number(req.query.page) : undefined;
+    const limit = req.query.limit ? Number(req.query.limit) : undefined;
+    const search = req.query.search ? String(req.query.search) : "";
 
-    if (req.query.search) {
-      querySearch["$or"] = [
-        { name: { $regex: req.query.search, $options: "i" } },
-      ];
-    }
-
-    const docs = await Category.find(querySearch)
-      .skip(skip)
-      .limit(limit)
-      .sort({ _id: -1 })
-      .exec();
-
-    const totalItems = await Category.find(querySearch).countDocuments();
-    const totalPage = Math.ceil(totalItems / limit);
+    const docs = await Category.findAll({ page, limit, search });
+    const totalItem = await Category.countAll(search);
+    const totalPage = limit ? Math.ceil(totalItem / limit) : 1;
 
     res.status(200).json({
       success: true,
+      totalItem,
       totalPage,
       result: docs,
     });
@@ -59,12 +56,12 @@ export const findOne = async (
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
+    const id = String(req.params.id);
     const doc = await Category.findById(id);
     if (!doc) {
       return res.status(404).json({
         success: false,
-        error: "Document not found with that ID!",
+        error: "Category not found with that ID!",
       });
     }
     res.status(200).json({
@@ -82,12 +79,12 @@ export const update = async (
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
-    const doc = await Category.findByIdAndUpdate(id, req.body, { new: true });
+    const id = String(req.params.id);
+    const doc = await Category.update(id, req.body);
     if (!doc) {
       return res.status(404).json({
         success: false,
-        error: "Document not found with that ID!",
+        error: "Category not found with that ID!",
       });
     }
     res.status(200).json({
@@ -105,12 +102,12 @@ export const remove = async (
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
-    const doc = await Category.findByIdAndDelete(id);
-    if (!doc) {
+    const id = String(req.params.id);
+    const deleted = await Category.remove(id);
+    if (!deleted) {
       return res.status(404).json({
         success: false,
-        error: "Document not found with that ID!",
+        error: "Category not found with that ID!",
       });
     }
     res.status(200).json({
@@ -120,4 +117,12 @@ export const remove = async (
   } catch (error) {
     next(error);
   }
+};
+
+export default {
+  create,
+  findAll,
+  findOne,
+  update,
+  remove,
 };

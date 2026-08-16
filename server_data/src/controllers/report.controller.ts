@@ -1,9 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import Customer from "../models/customer.model";
+import pool from "../database/db";
 import Product from "../models/product.model";
-import Purchase from "../models/purchase.model";
-import Sale from "../models/sale.model";
-import Supplier from "../models/supplier.model";
 
 export const generalReport = async (
   req: Request,
@@ -11,81 +8,33 @@ export const generalReport = async (
   next: NextFunction
 ) => {
   try {
-    // 1. find revenue today
-    const startOfToday = new Date(new Date().setHours(0, 0, 0, 0));
-    const endOfToday = new Date(new Date().setHours(23, 59, 59, 999));
-    const todaySales = await Sale.find(
-      {
-        createdAt: {
-          $gte: startOfToday,
-          $lte: endOfToday,
-        },
-      },
-      {
-        totalCost: 1,
-      }
+    const [todayRows]: any = await pool.query(
+      "SELECT COALESCE(SUM(total_cost), 0) as total FROM sales WHERE DATE(created_at) = CURDATE()"
     );
+    const totalSaleToday = Number(todayRows[0]?.total || 0);
 
-    const totalSaleToday = todaySales.reduce((sum, sale) => {
-      return sum + (sale.totalCost || 0);
-    }, 0);
-
-    // 2. total due amount sale
-    const dueSales = await Sale.find(
-      {
-        paymentStatus: "due",
-      },
-      {
-        totalCost: 1,
-      }
+    const [saleDueRows]: any = await pool.query(
+      "SELECT COALESCE(SUM(due_amount), 0) as total, COUNT(*) as count FROM sales WHERE payment_status IN ('due', 'partial')"
     );
+    const totalDueAmountSale = Number(saleDueRows[0]?.total || 0);
+    const totalSaleDue = Number(saleDueRows[0]?.count || 0);
 
-    const totalDueAmountSale = dueSales.reduce((sum, sale) => {
-      return sum + (sale.totalCost || 0);
-    }, 0);
-
-    // 3. total due amount purchase
-    const duePurchases = await Purchase.find(
-      {
-        paymentStatus: "due",
-      },
-      { totalCost: 1 }
+    const [purchaseDueRows]: any = await pool.query(
+      "SELECT COALESCE(SUM(due_amount), 0) as total, COUNT(*) as count FROM purchases WHERE payment_status IN ('due', 'partial')"
     );
-    const totalDueAmountPurchase = duePurchases.reduce((sum, purchase) => {
-      return sum + (purchase.totalCost || 0);
-    }, 0);
+    const totalDueAmountPurchase = Number(purchaseDueRows[0]?.total || 0);
+    const totalPurchaseDue = Number(purchaseDueRows[0]?.count || 0);
 
-    // 4. monthly sale
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    monthStart.setHours(0, 0, 0, 0);
-
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    monthEnd.setHours(23, 59, 59, 999);
-
-    const monthlySales = await Sale.find(
-      {
-        createdAt: {
-          $gte: monthStart,
-          $lte: monthEnd,
-        },
-      },
-      { totalCost: 1 }
+    const [monthlyRows]: any = await pool.query(
+      "SELECT COALESCE(SUM(total_cost), 0) as total FROM sales WHERE MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())"
     );
+    const totalMonthlySale = Number(monthlyRows[0]?.total || 0);
 
-    const totalMonthlySale = monthlySales.reduce((sum, sale) => {
-      return sum + (sale.totalCost || 0);
-    }, 0);
+    const [custRows]: any = await pool.query("SELECT COUNT(*) as total FROM customers");
+    const totalCustomers = Number(custRows[0]?.total || 0);
 
-    // count metrics
-    const totalCustomers = await Customer.countDocuments();
-    const totalSuppliers = await Supplier.countDocuments();
-    const totalPurchaseDue = await Purchase.find({
-      paymentStatus: "due",
-    }).countDocuments();
-    const totalSaleDue = await Sale.find({
-      paymentStatus: "due",
-    }).countDocuments();
+    const [supRows]: any = await pool.query("SELECT COUNT(*) as total FROM suppliers");
+    const totalSuppliers = Number(supRows[0]?.total || 0);
 
     res.status(200).json({
       success: true,
@@ -111,31 +60,29 @@ export const saleReport = async (
   next: NextFunction
 ) => {
   try {
-    if (!req.query?.startDate || !req.query?.endDate) {
-      return res.status(400).json({
-        success: false,
-        error: "Start date and End date are required",
-      });
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
+
+    let sql = `
+      SELECT s.*, 
+             u.username as cashierName, 
+             c.name as customerName, 
+             c.phone as customerPhone
+      FROM sales s
+      LEFT JOIN users u ON s.user_id = u.id
+      LEFT JOIN customers c ON s.customer_id = c.id
+    `;
+    const params: any[] = [];
+
+    if (startDate && endDate) {
+      sql += " WHERE s.created_at >= ? AND s.created_at <= ?";
+      params.push(new Date(startDate), new Date(endDate + " 23:59:59"));
     }
 
-    const startDate = new Date(req.query.startDate as string);
-    startDate.setHours(0, 0, 0, 0);
+    sql += " ORDER BY s.id DESC";
 
-    const endDate = new Date(req.query.endDate as string);
-    endDate.setHours(23, 59, 59, 999);
-
-    const sales = await Sale.find({
-      createdAt: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    })
-      .populate("customer", "name phone")
-      .populate("user", "username email role");
-
-    const totalAmount = sales.reduce((sum, sale) => {
-      return sum + (sale.totalCost || 0);
-    }, 0);
+    const [sales]: any = await pool.query(sql, params);
+    const totalAmount = sales.reduce((sum: number, s: any) => sum + Number(s.total_cost || 0), 0);
 
     res.status(200).json({
       success: true,
@@ -153,18 +100,15 @@ export const stockReport = async (
   next: NextFunction
 ) => {
   try {
-    if (!req.query?.stockQty) {
-      return res.status(400).json({
-        success: false,
-        error: "Please provide stock qty",
-      });
-    }
-
-    const docs = await Product.find({
-      currentStock: {
-        $lte: Number(req.query.stockQty),
-      },
-    }).populate("category", "name");
+    const stockQty = req.query.stockQty !== undefined ? Number(req.query.stockQty) : 10;
+    const [docs]: any = await pool.query(
+      `SELECT p.*, c.name as categoryName
+       FROM products p
+       LEFT JOIN categories c ON p.category_id = c.id
+       WHERE p.current_stock <= ?
+       ORDER BY p.current_stock ASC`,
+      [stockQty]
+    );
 
     res.status(200).json({
       success: true,
@@ -181,19 +125,14 @@ export const salereportIn30Days = async (
   next: NextFunction
 ) => {
   try {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const sales = await Sale.find(
-      {
-        createdAt: {
-          $gte: thirtyDaysAgo,
-        },
-      },
-      {
-        createdAt: 1,
-        totalCost: 1,
-      }
+    const [sales]: any = await pool.query(
+      `SELECT DATE(created_at) as saleDate, 
+              SUM(total_cost) as totalRevenue, 
+              COUNT(*) as totalOrders
+       FROM sales
+       WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+       GROUP BY DATE(created_at)
+       ORDER BY DATE(created_at) ASC`
     );
 
     res.status(200).json({
@@ -203,4 +142,11 @@ export const salereportIn30Days = async (
   } catch (error) {
     next(error);
   }
+};
+
+export default {
+  generalReport,
+  saleReport,
+  stockReport,
+  salereportIn30Days,
 };

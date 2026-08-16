@@ -1,29 +1,33 @@
-import { User } from "./types"
+import { apiFetch } from "./client";
+import { User, ApiResponse } from "./types";
 
-let mockUsers: User[] = [
-  { id: 1, username: "panha", email: "panha@gmail.com", role: "cashier" },
-]
-
-export async function getUsers(): Promise<User[]> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  return [...mockUsers]
+export async function getUsers(params?: { search?: string; page?: number; limit?: number }): Promise<User[]> {
+  const res = await apiFetch<User[]>("/users", { params });
+  return (res.result || res.data || []) as User[];
 }
 
-export async function createUser(user: Omit<User, "id">): Promise<User> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  const newUser = { ...user, id: mockUsers.length + 1 }
-  mockUsers.push(newUser)
-  return newUser
+export async function getUser(id: number | string): Promise<User | null> {
+  const res = await apiFetch<User>(`/users/${id}`);
+  return res.result || null;
 }
 
-export async function updateUser(user: User): Promise<User> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  mockUsers = mockUsers.map((u) => (u.id === user.id ? user : u))
-  return user
+export async function createUser(data: Partial<User> & { password?: string }): Promise<ApiResponse<User>> {
+  return await apiFetch<User>("/users", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
-export async function deleteUser(id: number): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  mockUsers = mockUsers.filter((u) => u.id !== id)
-  return true
+export async function updateUser(id: number | string, data: Partial<User> & { password?: string }): Promise<ApiResponse<User>> {
+  return await apiFetch<User>(`/users/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteUser(id: number | string): Promise<boolean> {
+  const res = await apiFetch(`/users/${id}`, {
+    method: "DELETE",
+  });
+  return res.success;
 }

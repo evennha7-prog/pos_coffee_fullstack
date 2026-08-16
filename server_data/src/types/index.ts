@@ -1,6 +1,12 @@
 import { Request } from "express";
-import { IUser } from "../models/user.model";
+
+export interface IUserContext {
+  id: number;
+  username: string;
+  email: string;
+  role: "super" | "admin" | "cashier";
+}
 
 export interface AuthRequest extends Request {
-  user?: IUser | any;
+  user?: IUserContext;
 }

@@ -1,60 +1,89 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { IconPlus, IconSearch, IconEdit, IconTrash, IconUser } from "@tabler/icons-react"
+import { IconPlus, IconSearch, IconEdit, IconTrash, IconUser, IconLoader2 } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
+import { getCustomers, createCustomer, updateCustomer, deleteCustomer, Customer } from "@/lib/api"
 import CreateCustomer from "./CreateCustomer"
 import EditCustomer from "./EditCustomer"
 
-interface Customer {
-  id: number
-  name: string
-  email: string
-  phone: string
-  points: number
-  spent: number
-}
-
 export default function CustomerPage() {
-  const [customers, setCustomers] = useState<Customer[]>([
-    { id: 1, name: "Sophea Chan", email: "sophea@example.com", phone: "+855 12 345 678", points: 450, spent: 128.50 },
-    { id: 2, name: "David Miller", email: "david@example.com", phone: "+855 98 765 432", points: 210, spent: 74.00 },
-    { id: 3, name: "Vannak Sam", email: "vannak@example.com", phone: "+855 77 112 233", points: 890, spent: 310.20 },
-    { id: 4, name: "Elena Rostova", email: "elena@example.com", phone: "+855 89 445 566", points: 120, spent: 45.00 },
-  ])
-
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
 
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true)
+      const data = await getCustomers()
+      setCustomers(data)
+    } catch (error) {
+      console.error("Failed to load customers:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchCustomers()
+  }, [])
+
   // Filter customers based on search query
   const filteredCustomers = customers.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.phone.toLowerCase().includes(searchQuery.toLowerCase())
+    (c.phone || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.address || "").toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   // Handle customer creation
-  const handleCreate = (newCust: Omit<Customer, "id">) => {
-    const nextId = customers.length > 0 ? Math.max(...customers.map((c) => c.id)) + 1 : 1
-    setCustomers([...customers, { id: nextId, ...newCust }])
+  const handleCreate = async (newCust: Partial<Customer>) => {
+    try {
+      const res = await createCustomer(newCust)
+      if (res.success && res.result) {
+        setCustomers((prev) => [res.result!, ...prev])
+      } else {
+        alert(res.error || "Failed to create customer")
+      }
+    } catch (error) {
+      console.error("Failed to create customer:", error)
+    }
   }
 
   // Handle customer update
-  const handleSave = (updatedCust: Customer) => {
-    setCustomers(
-      customers.map((c) => (c.id === updatedCust.id ? updatedCust : c))
-    )
+  const handleSave = async (updatedCust: Customer) => {
+    try {
+      const res = await updateCustomer(updatedCust.id, updatedCust)
+      if (res.success && res.result) {
+        setCustomers((prev) =>
+          prev.map((c) => (c.id === updatedCust.id ? res.result! : c))
+        )
+      } else {
+        alert(res.error || "Failed to update customer")
+      }
+    } catch (error) {
+      console.error("Failed to update customer:", error)
+    }
   }
 
   // Handle customer deletion
-  const handleDelete = (id: number, name: string) => {
+  const handleDelete = async (id: number, name: string) => {
     if (window.confirm(`Are you sure you want to delete the customer "${name}"?`)) {
-      setCustomers(customers.filter((c) => c.id !== id))
+      try {
+        const success = await deleteCustomer(id)
+        if (success) {
+          setCustomers((prev) => prev.filter((c) => c.id !== id))
+        } else {
+          alert("Failed to delete customer")
+        }
+      } catch (error) {
+        console.error("Failed to delete customer:", error)
+      }
     }
   }
 
@@ -67,7 +96,7 @@ export default function CustomerPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Customer Directory</h1>
-            <p className="text-sm text-muted-foreground">Manage your coffee shop members & loyalty points</p>
+            <p className="text-sm text-muted-foreground">Manage your coffee shop customers in MySQL database</p>
           </div>
         </div>
         <Button 
@@ -83,14 +112,14 @@ export default function CustomerPage() {
           <div>
             <CardTitle className="text-base font-semibold">Registered Customers</CardTitle>
             <CardDescription>
-              Total {filteredCustomers.length} loyalty member{filteredCustomers.length !== 1 && "s"} found
+              Total {filteredCustomers.length} customer{filteredCustomers.length !== 1 && "s"} found
             </CardDescription>
           </div>
           <div className="relative w-full sm:w-64">
             <IconSearch className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input 
               type="search" 
-              placeholder="Search customer..." 
+              placeholder="Search customer by name, phone..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8 text-sm h-9" 
@@ -99,7 +128,12 @@ export default function CustomerPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            {filteredCustomers.length === 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+                <IconLoader2 className="h-5 w-5 animate-spin text-primary" />
+                <span>Loading customers from MySQL...</span>
+              </div>
+            ) : filteredCustomers.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 No customers found matching "{searchQuery}"
               </div>
@@ -108,10 +142,9 @@ export default function CustomerPage() {
                 <thead className="border-y bg-muted/40 text-xs font-medium text-muted-foreground uppercase">
                   <tr>
                     <th className="px-4 py-3">Customer Name</th>
-                    <th className="px-4 py-3">Email</th>
                     <th className="px-4 py-3">Phone</th>
-                    <th className="px-4 py-3">Loyalty Points</th>
-                    <th className="px-4 py-3">Total Spent</th>
+                    <th className="px-4 py-3">Address</th>
+                    <th className="px-4 py-3">Note</th>
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -124,10 +157,9 @@ export default function CustomerPage() {
                         </div>
                         <span>{c.name}</span>
                       </td>
-                      <td className="px-4 py-3.5 text-muted-foreground">{c.email}</td>
-                      <td className="px-4 py-3.5 text-muted-foreground font-mono text-xs">{c.phone}</td>
-                      <td className="px-4 py-3.5 font-bold text-amber-600">{c.points} pts</td>
-                      <td className="px-4 py-3.5 font-semibold text-foreground">${c.spent.toFixed(2)}</td>
+                      <td className="px-4 py-3.5 text-muted-foreground font-mono text-xs">{c.phone || "-"}</td>
+                      <td className="px-4 py-3.5 text-muted-foreground text-xs">{c.address || "-"}</td>
+                      <td className="px-4 py-3.5 text-muted-foreground text-xs">{c.note || "-"}</td>
                       <td className="px-4 py-3.5 text-right space-x-2">
                         <Button 
                           variant="ghost" 
@@ -175,4 +207,3 @@ export default function CustomerPage() {
     </div>
   )
 }
-

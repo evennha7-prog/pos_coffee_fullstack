@@ -1,41 +1,97 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# =============================================================================
+# Coffee POS - Root Security & Git Ignore Configuration
+# =============================================================================
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
+# Dependencies
+node_modules/
+*/node_modules/
+*/*/node_modules/
+.pnp
+.pnp.js
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
+# Environment Variables & Security Secrets
+.env
+.env*
+!.env.example
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+server_data/.env
+server_data/.env*
+!server_data/.env.example
 
-# next.js
-/.next/
-/out/
+# Next.js Build Outputs & Cache
+.next/
+out/
+build/
+dist/
+*/dist/
 
-# production
-/build
+# TypeScript Build Info
+*.tsbuildinfo
+next-env.d.ts
 
-# misc
-.DS_Store
-*.pem
+# User Uploaded Files & Static Assets
+server_data/upload/*
+!server_data/upload/.gitkeep
+server_data/src/upload/*
+!server_data/src/upload/.gitkeep
 
-# debug
+# Logs and Debugging
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# Testing & Coverage
+coverage/
+*.lcov
+.nyc_output
 
-# vercel
+# OS Generated & Temp Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE & Editor Configuration
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Security Credentials, Keys & Certificates
+*.pem
+*.key
+*.crt
+*.cert
+*.pfx
+*.p12
+*.jks
+id_rsa
+id_ecdsa
+id_ed25519
+secring.gpg
+credentials.json
+token.json
+service-account*.json
+
+# Vercel & Deployment
 .vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts

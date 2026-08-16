@@ -5,7 +5,13 @@ import { AuthRequest } from "../types";
 
 const authGuard = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.cookies?.token;
+    let token = req.cookies?.token;
+
+    // Support Bearer token header if cookie is not present
+    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -13,8 +19,11 @@ const authGuard = async (req: AuthRequest, res: Response, next: NextFunction) =>
       });
     }
 
-    const payload = jwt.verify(token, process.env.JWT_SECRET as string) as {
-      userId: string;
+    const payload = jwt.verify(
+      token,
+      (process.env.JWT_SECRET as string) || "supersecretjwtkey_coffeepos_2026"
+    ) as {
+      userId: number | string;
     };
 
     const user = await User.findById(payload.userId);
@@ -25,10 +34,15 @@ const authGuard = async (req: AuthRequest, res: Response, next: NextFunction) =>
       });
     }
 
-    req.user = user;
+    req.user = {
+      id: user.id!,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    };
     next();
   } catch (error) {
-    res.status(401).json({
+    return res.status(401).json({
       success: false,
       error: "Authentication Invalid: Token verification failed!",
     });

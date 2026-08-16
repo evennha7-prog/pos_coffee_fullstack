@@ -1,78 +1,49 @@
-import { Purchase } from "./types"
+import { apiFetch } from "./client";
+import { Purchase, ApiResponse } from "./types";
 
-let mockPurchases: Purchase[] = [
-  {
-    id: "PO-2026-001",
-    no: 1,
-    supplier: "Highland Coffee Beans Co.",
-    purchaseBy: "Admin",
-    totalCost: 500000.00,
-    dueAmount: 0.00,
-    paidAmount: 500000.00,
-    changeAmount: 0.00,
-    paymentStatus: "Paid",
-    purchaseStatus: "Received",
-    purchaseDate: "2026-07-20",
-  },
-  {
-    id: "PO-2026-002",
-    no: 2,
-    supplier: "Fresh Dairy Milk Supplies",
-    purchaseBy: "Manager",
-    totalCost: 136000.00,
-    dueAmount: 0.00,
-    paidAmount: 136000.00,
-    changeAmount: 0.00,
-    paymentStatus: "Paid",
-    purchaseStatus: "Received",
-    purchaseDate: "2026-07-19",
-  },
-  {
-    id: "PO-2026-003",
-    no: 3,
-    supplier: "Artisan Bakery Wholesales",
-    purchaseBy: "Admin",
-    totalCost: 208000.00,
-    dueAmount: 208000.00,
-    paidAmount: 0.00,
-    changeAmount: 0.00,
-    paymentStatus: "Pending",
-    purchaseStatus: "Pending",
-    purchaseDate: "2026-07-18",
-  },
-  {
-    id: "PO-2026-004",
-    no: 4,
-    supplier: "Eco Packaging Cambodia",
-    purchaseBy: "Cashier",
-    totalCost: 164000.00,
-    dueAmount: 0.00,
-    paidAmount: 164000.00,
-    changeAmount: 0.00,
-    paymentStatus: "Paid",
-    purchaseStatus: "Ordered",
-    purchaseDate: "2026-07-15",
-  },
-]
-
-export async function getPurchases(): Promise<Purchase[]> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  return [...mockPurchases]
+export async function getPurchases(params?: { search?: string; page?: number; limit?: number }): Promise<Purchase[]> {
+  const res = await apiFetch<Purchase[]>("/purchase", { params });
+  return (res.result || res.data || []) as Purchase[];
 }
 
-export async function createPurchase(purch: Omit<Purchase, "id" | "no">): Promise<Purchase> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  const newPurch = {
-    ...purch,
-    id: "PO-2026-" + String(mockPurchases.length + 1).padStart(3, "0"),
-    no: mockPurchases.length + 1,
-  } as Purchase
-  mockPurchases.push(newPurch)
-  return newPurch
+export async function getPurchase(id: number | string): Promise<Purchase | null> {
+  const res = await apiFetch<Purchase>(`/purchase/${id}`);
+  return res.result || null;
 }
 
-export async function deletePurchase(id: string): Promise<boolean> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  mockPurchases = mockPurchases.filter((p) => p.id !== id)
-  return true
+export async function createPurchase(payload: {
+  supplier_id: number;
+  invoice_number: string;
+  purchase_date?: string;
+  total_cost: number;
+  paid_amount?: number;
+  purchase_status?: "received" | "ordered" | "pending" | "cancel";
+  items: Array<{
+    product_id: number;
+    quantity: number;
+    unit_price: number;
+    total_price?: number;
+  }>;
+}): Promise<ApiResponse<Purchase>> {
+  return await apiFetch<Purchase>("/purchase", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updatePurchaseStatus(
+  id: number | string,
+  purchaseStatus: "received" | "ordered" | "pending" | "cancel"
+): Promise<ApiResponse<Purchase>> {
+  return await apiFetch<Purchase>(`/purchase/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ purchaseStatus }),
+  });
+}
+
+export async function addPurchasePayment(id: number | string, paidAmount: number): Promise<ApiResponse<Purchase>> {
+  return await apiFetch<Purchase>(`/purchase/addPayment/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ paidAmount }),
+  });
 }

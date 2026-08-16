@@ -1,0 +1,12 @@
+{
+  "name": "coffee-pos-server",
+  "version": "1.0.0",
+  "description": "Coffee POS Express Backend Root Helper",
+  "scripts": {
+    "dev": "npm --prefix src run dev",
+    "start": "npm --prefix src start",
+    "build": "npm --prefix src run build",
+    "db:migrate": "npm --prefix src run db:migrate",
+    "db:seeder": "npm --prefix src run db:seeder"
+  }
+}

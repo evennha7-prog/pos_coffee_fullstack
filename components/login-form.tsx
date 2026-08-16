@@ -20,34 +20,41 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { FadeArc } from "@/components/fade-arc"
+import { login } from "@/lib/api"
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState("super@coffee.com")
+  const [password, setPassword] = useState("123456")
   const [isLoading, setIsLoading] = useState(false)
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setTimeout(() => {
-      const nameFromEmail = email.split("@")[0] || "User"
-      const formattedName = nameFromEmail.charAt(0).toUpperCase() + nameFromEmail.slice(1)
-      localStorage.setItem("user", JSON.stringify({ name: formattedName, email }))
-      router.push("/dashboard")
-    }, 1200)
-  }
+    setError(null)
 
-  const handleGoogleLogin = () => {
-    setIsGoogleLoading(true)
-    setTimeout(() => {
-      localStorage.setItem("user", JSON.stringify({ name: "Google User", email: "google.user@example.com" }))
-      router.push("/dashboard")
-    }, 1200)
+    try {
+      const res = await login({ email, password })
+      if (res.success && res.result) {
+        const user = res.result
+        localStorage.setItem("user", JSON.stringify({
+          name: user.username,
+          email: user.email,
+          role: user.role,
+        }))
+        router.push("/dashboard")
+      } else {
+        setError(res.error || "Invalid credentials. Please check your email and password.")
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to login. Please ensure backend server is running.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -56,18 +63,23 @@ export function LoginForm({
         <CardHeader>
           <CardTitle>Login to your account</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account
+            Enter your email and password to connect to Coffee POS
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <FieldGroup>
+              {error && (
+                <div className="p-3 text-xs font-semibold text-rose-600 bg-rose-500/10 border border-rose-500/20 rounded-xl text-center">
+                  {error}
+                </div>
+              )}
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="super@coffee.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -80,7 +92,7 @@ export function LoginForm({
                     href="#"
                     className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
                   >
-                    Forgot your password?
+                    Default: 123456
                   </a>
                 </div>
                 <Input
@@ -92,24 +104,14 @@ export function LoginForm({
                 />
               </Field>
               <Field>
-                <Button type="submit" className="w-full font-bold cursor-pointer h-10" disabled={isLoading}>
+                <Button type="submit" className="w-full font-bold cursor-pointer h-10 bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isLoading}>
                   {isLoading ? (
                     <span className="flex items-center justify-center gap-2">
                       <FadeArc className="h-4 w-4 animate-spin text-white" />
-                      Logging in...
+                      Logging in to MySQL...
                     </span>
                   ) : (
                     "Login"
-                  )}
-                </Button>
-                <Button variant="outline" type="button" className="w-full font-bold cursor-pointer h-10" onClick={handleGoogleLogin} disabled={isGoogleLoading}>
-                  {isGoogleLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <FadeArc className="h-4 w-4 animate-spin text-muted-foreground" />
-                      Connecting...
-                    </span>
-                  ) : (
-                    "Login with Google"
                   )}
                 </Button>
                 <FieldDescription className="text-center">
@@ -126,4 +128,3 @@ export function LoginForm({
     </div>
   )
 }
-

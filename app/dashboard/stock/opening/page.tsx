@@ -18,12 +18,7 @@ interface OpeningStockItem {
 
 export default function OpeningStockPage() {
   const [search, setSearch] = useState("")
-  const [items] = useState<OpeningStockItem[]>([
-    { id: "1", name: "Arabica Coffee Beans", sku: "CB-ARA-01", category: "Coffee Beans", openingQty: 50, unit: "kg", recordedDate: "2026-07-01" },
-    { id: "2", name: "Robusta Coffee Beans", sku: "CB-ROB-01", category: "Coffee Beans", openingQty: 40, unit: "kg", recordedDate: "2026-07-01" },
-    { id: "3", name: "Whole Milk 1L", sku: "MK-WHL-01", category: "Dairy", openingQty: 100, unit: "packs", recordedDate: "2026-07-01" },
-    { id: "4", name: "Caramel Syrup", sku: "SY-CAR-02", category: "Syrups", openingQty: 20, unit: "bottles", recordedDate: "2026-07-01" },
-  ])
+  const [items, setItems] = useState<OpeningStockItem[]>([])
 
   const filtered = items.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -63,30 +58,36 @@ export default function OpeningStockPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
-                <tr>
-                  <th className="px-4 py-3">SKU</th>
-                  <th className="px-4 py-3">Item Name</th>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3 text-right">Opening Qty</th>
-                  <th className="px-4 py-3 text-right">Unit</th>
-                  <th className="px-4 py-3 text-right">Recorded Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filtered.map(item => (
-                  <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3.5 font-mono text-xs font-semibold">{item.sku}</td>
-                    <td className="px-4 py-3.5 font-medium">{item.name}</td>
-                    <td className="px-4 py-3.5 text-muted-foreground">{item.category}</td>
-                    <td className="px-4 py-3.5 text-right font-bold text-foreground">{item.openingQty}</td>
-                    <td className="px-4 py-3.5 text-right text-muted-foreground text-xs">{item.unit}</td>
-                    <td className="px-4 py-3.5 text-right font-mono text-xs text-muted-foreground">{item.recordedDate}</td>
+            {filtered.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground font-semibold">
+                No opening stock records found.
+              </div>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
+                  <tr>
+                    <th className="px-4 py-3">SKU</th>
+                    <th className="px-4 py-3">Item Name</th>
+                    <th className="px-4 py-3">Category</th>
+                    <th className="px-4 py-3 text-right">Opening Qty</th>
+                    <th className="px-4 py-3 text-right">Unit</th>
+                    <th className="px-4 py-3 text-right">Recorded Date</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map(item => (
+                    <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3.5 font-mono text-xs font-semibold">{item.sku}</td>
+                      <td className="px-4 py-3.5 font-medium">{item.name}</td>
+                      <td className="px-4 py-3.5 text-muted-foreground">{item.category}</td>
+                      <td className="px-4 py-3.5 text-right font-bold text-foreground">{item.openingQty}</td>
+                      <td className="px-4 py-3.5 text-right text-muted-foreground text-xs">{item.unit}</td>
+                      <td className="px-4 py-3.5 text-right font-mono text-xs text-muted-foreground">{item.recordedDate}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </CardContent>
       </Card>

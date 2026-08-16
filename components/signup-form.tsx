@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { FadeArc } from "@/components/fade-arc"
+import { register } from "@/lib/api"
 
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   const router = useRouter()
@@ -28,9 +29,8 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (password !== confirmPassword) {
       setError("Passwords do not match")
@@ -38,18 +38,29 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
     }
     setError("")
     setIsLoading(true)
-    setTimeout(() => {
-      localStorage.setItem("user", JSON.stringify({ name: name || "User", email }))
-      router.push("/dashboard")
-    }, 1200)
-  }
 
-  const handleGoogleSignup = () => {
-    setIsGoogleLoading(true)
-    setTimeout(() => {
-      localStorage.setItem("user", JSON.stringify({ name: "Google User", email: "google.user@example.com" }))
-      router.push("/dashboard")
-    }, 1200)
+    try {
+      const res = await register({
+        username: name.trim(),
+        email: email.trim(),
+        password: password,
+      })
+
+      if (res.success && res.result) {
+        localStorage.setItem("user", JSON.stringify({
+          name: res.result.username,
+          email: res.result.email,
+          role: res.result.role,
+        }))
+        router.push("/dashboard")
+      } else {
+        setError(res.error || "Registration failed. Email or username might already exist.")
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to register account with MySQL database.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -57,23 +68,23 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
       <CardHeader>
         <CardTitle>Create an account</CardTitle>
         <CardDescription>
-          Enter your information below to create your account
+          Enter your information below to register your account in MySQL
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit}>
           <FieldGroup>
             {error && (
-              <div className="text-sm font-medium text-destructive text-center">
+              <div className="p-3 text-xs font-semibold text-rose-600 bg-rose-500/10 border border-rose-500/20 rounded-xl text-center">
                 {error}
               </div>
             )}
             <Field>
-              <FieldLabel htmlFor="name">Full Name</FieldLabel>
+              <FieldLabel htmlFor="name">Username</FieldLabel>
               <Input
                 id="name"
                 type="text"
-                placeholder="John Doe"
+                placeholder="johndoe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -90,8 +101,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 required
               />
               <FieldDescription>
-                We&apos;ll use this to contact you. We will not share your email
-                with anyone else.
+                We&apos;ll use this to identify your staff account.
               </FieldDescription>
             </Field>
             <Field>
@@ -99,13 +109,11 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
               <Input
                 id="password"
                 type="password"
+                placeholder="At least 6 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-              <FieldDescription>
-                Must be at least 8 characters long.
-              </FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="confirm-password">
@@ -118,28 +126,17 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
               />
-              <FieldDescription>Please confirm your password.</FieldDescription>
             </Field>
             <FieldGroup>
               <Field>
-                <Button type="submit" className="w-full font-bold cursor-pointer h-10" disabled={isLoading}>
+                <Button type="submit" className="w-full font-bold cursor-pointer h-10 bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isLoading}>
                   {isLoading ? (
                     <span className="flex items-center justify-center gap-2">
                       <FadeArc className="h-4 w-4 animate-spin text-white" />
-                      Creating Account...
+                      Creating Account in MySQL...
                     </span>
                   ) : (
                     "Create Account"
-                  )}
-                </Button>
-                <Button variant="outline" type="button" className="w-full font-bold cursor-pointer h-10" onClick={handleGoogleSignup} disabled={isGoogleLoading}>
-                  {isGoogleLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <FadeArc className="h-4 w-4 animate-spin text-muted-foreground" />
-                      Connecting...
-                    </span>
-                  ) : (
-                    "Sign up with Google"
                   )}
                 </Button>
                 <FieldDescription className="px-6 text-center">
@@ -156,4 +153,3 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
     </Card>
   )
 }
-

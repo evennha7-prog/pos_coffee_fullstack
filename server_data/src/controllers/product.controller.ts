@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import Product from "../models/product.model";
-import { generateProductCode } from "./counter.controller";
+import { generateProductCode } from "../models/counter.model";
 
 export const create = async (
   req: Request,
@@ -8,12 +8,30 @@ export const create = async (
   next: NextFunction
 ) => {
   try {
-    const code = await generateProductCode();
+    let { name, category_id, code, image_url, cost_price, sale_price, current_stock, note } = req.body;
+
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        error: "Product name is required",
+      });
+    }
+
+    if (!code) {
+      code = await generateProductCode();
+    }
+
     const newDoc = await Product.create({
-      ...req.body,
+      name,
+      category_id: category_id ? Number(category_id) : null,
       code,
-      currentStock: 0,
+      image_url: image_url || "",
+      cost_price: Number(cost_price) || 0,
+      sale_price: Number(sale_price) || 0,
+      current_stock: Number(current_stock) || 0,
+      note: note || null,
     });
+
     res.status(201).json({
       success: true,
       result: newDoc,
@@ -29,49 +47,19 @@ export const findAll = async (
   next: NextFunction
 ) => {
   try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    const querySearch: any = {};
-    let sortOption: any = "-_id";
+    const page = req.query.page ? Number(req.query.page) : undefined;
+    const limit = req.query.limit ? Number(req.query.limit) : undefined;
+    const search = req.query.search ? String(req.query.search) : "";
+    const categoryId = req.query.category_id ? String(req.query.category_id) : undefined;
+    const sort = req.query.sort ? String(req.query.sort) : undefined;
 
-    // Advanced filtering
-    const reservedFields = ["page", "limit", "sort", "search"];
-    const queryFilters: any = { ...req.query };
-    reservedFields.forEach((field) => delete queryFilters[field]);
-
-    const filterString = JSON.stringify(queryFilters).replace(
-      /\b(gte|gt|lte|lt|in)\b/g,
-      (match) => `$${match}`
-    );
-    const filters = JSON.parse(filterString);
-
-    if (req.query.search) {
-      querySearch["$or"] = [
-        { name: { $regex: req.query.search, $options: "i" } },
-        { code: { $regex: req.query.search, $options: "i" } },
-      ];
-    }
-
-    if (req.query.sort) {
-      sortOption = req.query.sort;
-    }
-
-    const docs = await Product.find({ ...querySearch, ...filters })
-      .skip(skip)
-      .limit(limit)
-      .sort(sortOption)
-      .populate({
-        path: "category",
-        select: "name",
-      })
-      .exec();
-
-    const totalItem = await Product.find(querySearch).countDocuments();
-    const totalPage = Math.ceil(totalItem / limit);
+    const docs = await Product.findAll({ page, limit, search, categoryId, sort });
+    const totalItem = await Product.countAll({ search, categoryId });
+    const totalPage = limit ? Math.ceil(totalItem / limit) : 1;
 
     res.status(200).json({
       success: true,
+      totalItem,
       totalPage,
       result: docs,
     });
@@ -86,13 +74,13 @@ export const findOne = async (
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
-    const doc = await Product.findById(id).populate("category", "name");
+    const id = String(req.params.id);
+    const doc = await Product.findById(id);
 
     if (!doc) {
       return res.status(404).json({
         success: false,
-        error: "Document not found with that ID!",
+        error: "Product not found with that ID!",
       });
     }
     res.status(200).json({
@@ -110,13 +98,13 @@ export const findOneByCode = async (
   next: NextFunction
 ) => {
   try {
-    const code = req.params.code;
-    const doc = await Product.findOne({ code }).populate("category", "name");
+    const code = String(req.params.code);
+    const doc = await Product.findByCode(code);
 
     if (!doc) {
       return res.status(404).json({
         success: false,
-        error: "Document not found with that ID!",
+        error: "Product not found with that code!",
       });
     }
     res.status(200).json({
@@ -134,12 +122,12 @@ export const update = async (
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
-    const doc = await Product.findByIdAndUpdate(id, req.body, { new: true });
+    const id = String(req.params.id);
+    const doc = await Product.update(id, req.body);
     if (!doc) {
       return res.status(404).json({
         success: false,
-        error: "Document not found with that ID!",
+        error: "Product not found with that ID!",
       });
     }
     res.status(200).json({
@@ -157,12 +145,12 @@ export const remove = async (
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
-    const doc = await Product.findByIdAndDelete(id);
-    if (!doc) {
+    const id = String(req.params.id);
+    const deleted = await Product.remove(id);
+    if (!deleted) {
       return res.status(404).json({
         success: false,
-        error: "Document not found with that ID!",
+        error: "Product not found with that ID!",
       });
     }
     res.status(200).json({
@@ -172,4 +160,13 @@ export const remove = async (
   } catch (error) {
     next(error);
   }
+};
+
+export default {
+  create,
+  findAll,
+  findOne,
+  findOneByCode,
+  update,
+  remove,
 };

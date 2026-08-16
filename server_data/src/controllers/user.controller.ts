@@ -1,45 +1,68 @@
-import { Response, NextFunction } from "express";
-import User from "../models/user.model";
+import { Request, Response, NextFunction } from "express";
 import bcryptjs from "bcryptjs";
-import { AuthRequest } from "../types";
+import User from "../models/user.model";
 
-export const findAll = async (
-  req: AuthRequest,
+export const create = async (
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    const querySearch: any = {};
-
-    if (req.query.search) {
-      querySearch["$or"] = [
-        { username: { $regex: req.query.search, $options: "i" } },
-        { email: { $regex: req.query.search, $options: "i" } },
-      ];
+    const { username, email, password, role } = req.body;
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: "Username, email, and password are required",
+      });
     }
 
-    const docs = await User.find({
-      ...querySearch,
-      role: { $ne: "super" },
-      email: { $ne: req.user?.email },
-    })
-      .skip(skip)
-      .limit(limit)
-      .sort({ _id: -1 })
-      .exec();
+    const existing = await User.findByEmail(email);
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        error: "Email already exists!",
+      });
+    }
 
-    const totalItems = await User.find({
-      ...querySearch,
-      role: { $ne: "super" },
-      email: { $ne: req.user?.email },
-    }).countDocuments();
-    const totalPage = Math.ceil(totalItems / limit);
+    const hashedPassword = await bcryptjs.hash(password, 10);
+    const newUser = await User.create({
+      username,
+      email,
+      password: hashedPassword,
+      role: role || "cashier",
+    });
+
+    res.status(201).json({
+      success: true,
+      result: {
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const findAll = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const page = req.query.page ? Number(req.query.page) : 1;
+    const limit = req.query.limit ? Number(req.query.limit) : 20;
+    const search = req.query.search ? String(req.query.search) : "";
+
+    const docs = await User.findAll({ page, limit, search });
+    const totalItem = await User.countAll(search);
+    const totalPage = Math.ceil(totalItem / limit);
 
     res.status(200).json({
       success: true,
+      totalItem,
       totalPage,
       result: docs,
     });
@@ -49,17 +72,17 @@ export const findAll = async (
 };
 
 export const findOne = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
+    const id = String(req.params.id);
     const doc = await User.findById(id);
     if (!doc) {
       return res.status(404).json({
         success: false,
-        error: "Document not found with that ID!",
+        error: "User not found with that ID!",
       });
     }
     res.status(200).json({
@@ -72,43 +95,26 @@ export const findOne = async (
 };
 
 export const update = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
-    const { role, password } = req.body;
+    const id = String(req.params.id);
+    const updateData: any = { ...req.body };
 
-    if (!role) {
-      return res.status(403).json({
-        success: false,
-        error: "Please provide role!",
-      });
+    if (updateData.password) {
+      updateData.password = await bcryptjs.hash(updateData.password, 10);
     }
 
-    if (req.user?.role !== "super" && role === "admin") {
-      return res.status(403).json({
-        success: false,
-        error: "Only super users can update admin accounts",
-      });
-    }
-
-    if (password) {
-      const hashed = await bcryptjs.hash(password, 10);
-      req.body.password = hashed;
-    }
-
-    const doc = await User.findByIdAndUpdate(id, req.body, { new: true });
-
+    const doc = await User.update(id, updateData);
     if (!doc) {
       return res.status(404).json({
         success: false,
-        error: "User not found!",
+        error: "User not found with that ID!",
       });
     }
-
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       result: doc,
     });
@@ -118,43 +124,32 @@ export const update = async (
 };
 
 export const remove = async (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const id = req.params.id;
-    const role = req.user?.role;
-
-    const doc = await User.findById(id);
-    if (!doc) {
+    const id = String(req.params.id);
+    const deleted = await User.remove(id);
+    if (!deleted) {
       return res.status(404).json({
         success: false,
-        error: "Document not found with that ID!",
+        error: "User not found with that ID!",
       });
     }
-
-    if (doc.role === "super") {
-      return res.status(400).json({
-        success: false,
-        error: "You can't delete this user!",
-      });
-    }
-
-    if (doc.role === "admin" && role !== "super") {
-      return res.status(400).json({
-        success: false,
-        error: "You don't have permission to delete this user!",
-      });
-    }
-
-    await doc.deleteOne();
-
     res.status(200).json({
       success: true,
-      result: "User deleted successfully!",
+      result: "Deleted successfully!",
     });
   } catch (error) {
     next(error);
   }
+};
+
+export default {
+  create,
+  findAll,
+  findOne,
+  update,
+  remove,
 };

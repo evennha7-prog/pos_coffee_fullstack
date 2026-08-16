@@ -5,21 +5,29 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { IconChevronDown, IconX } from "@tabler/icons-react"
+import { IconChevronDown } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
+import { getCustomers, Customer } from "@/lib/api"
 
 export default function PaymentModal({ isOpen, onOpenChange, totalUSD, totalKHR, onSave }) {
-  const [customer, setCustomer] = useState("chan")
+  const [customer, setCustomer] = useState("Walk-in Customer")
+  const [customerId, setCustomerId] = useState(null)
+  const [customersList, setCustomersList] = useState([])
   const [paidKHR, setPaidKHR] = useState("")
   const [paidUSD, setPaidUSD] = useState("")
-  const [activeQuickKey, setActiveQuickKey] = useState("Exact") // Track selected button style
+  const [activeQuickKey, setActiveQuickKey] = useState("Exact")
 
   useEffect(() => {
     if (isOpen) {
       setPaidKHR("")
       setPaidUSD("")
-      setCustomer("chan")
+      setCustomer("Walk-in Customer")
+      setCustomerId(null)
       setActiveQuickKey("Exact")
+
+      getCustomers()
+        .then((data) => setCustomersList(data || []))
+        .catch((err) => console.error("Failed to load customers for payment modal:", err))
     }
   }, [isOpen])
 
@@ -56,10 +64,24 @@ export default function PaymentModal({ isOpen, onOpenChange, totalUSD, totalKHR,
     }
   }
 
+  const handleCustomerChange = (e) => {
+    const val = e.target.value
+    setCustomer(val)
+    const found = customersList.find(c => String(c.id) === val || c.name === val)
+    if (found) {
+      setCustomerId(found.id)
+      setCustomer(found.name)
+    } else {
+      setCustomerId(null)
+      setCustomer("Walk-in Customer")
+    }
+  }
+
   const handleSave = (e) => {
     e.preventDefault()
     onSave({
       customer,
+      customerId,
       paidKHR: totalPaidKHR >= totalKHR ? totalPaidKHR : totalPaidKHR,
       paidUSD: totalPaidKHR >= totalKHR ? totalPaidKHR / exchangeRate : totalPaidKHR / exchangeRate,
       changeKHR,
@@ -71,37 +93,39 @@ export default function PaymentModal({ isOpen, onOpenChange, totalUSD, totalKHR,
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[460px] p-6 rounded-2xl">
-        <DialogHeader className="flex flex-row items-center justify-between border-b pb-4">
-          <DialogTitle className="text-xl font-bold text-foreground">Add Payment</DialogTitle>
+      <DialogContent className="w-[95vw] sm:w-full max-w-[480px] max-h-[92vh] overflow-y-auto p-4 sm:p-6 rounded-2xl">
+        <DialogHeader className="flex flex-row items-center justify-between border-b pb-3">
+          <DialogTitle className="text-lg sm:text-xl font-bold text-foreground">Add Payment</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSave} className="space-y-5 pt-3">
+        <form onSubmit={handleSave} className="space-y-4 pt-2">
           {/* Customer Field */}
           <div className="space-y-1">
-            <Label htmlFor="pay-customer" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            <Label htmlFor="pay-customer" className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
               Customer
             </Label>
             <div className="relative">
               <select
                 id="pay-customer"
-                value={customer}
-                onChange={(e) => setCustomer(e.target.value)}
-                className="h-10 w-full min-w-0 rounded-xl border border-input bg-input/10 pl-3 pr-8 py-1 text-sm font-semibold transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 appearance-none cursor-pointer text-foreground"
+                value={customerId ? String(customerId) : "walkin"}
+                onChange={handleCustomerChange}
+                className="h-9 sm:h-10 w-full min-w-0 rounded-xl border border-input bg-input/10 pl-3 pr-8 py-1 text-xs sm:text-sm font-semibold transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 appearance-none cursor-pointer text-foreground"
               >
-                <option value="chan">chan</option>
-                <option value="sophea">sophea</option>
-                <option value="david">david</option>
-                <option value="vannak">vannak</option>
+                <option value="walkin">Walk-in Customer</option>
+                {customersList.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} {c.phone ? `(${c.phone})` : ""}
+                  </option>
+                ))}
               </select>
               <IconChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 pointer-events-none text-muted-foreground" />
             </div>
           </div>
 
           {/* Paid Amounts Grid */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label htmlFor="pay-khr" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <Label htmlFor="pay-khr" className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Paid Amount (KHR ៛)
               </Label>
               <Input
@@ -113,11 +137,11 @@ export default function PaymentModal({ isOpen, onOpenChange, totalUSD, totalKHR,
                   setPaidKHR(e.target.value)
                   setActiveQuickKey("")
                 }}
-                className="rounded-xl h-10 font-mono"
+                className="rounded-xl h-9 sm:h-10 font-mono text-xs sm:text-sm"
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="pay-usd" className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              <Label htmlFor="pay-usd" className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
                 Paid Amount (USD $)
               </Label>
               <Input
@@ -129,19 +153,19 @@ export default function PaymentModal({ isOpen, onOpenChange, totalUSD, totalKHR,
                   setPaidUSD(e.target.value)
                   setActiveQuickKey("")
                 }}
-                className="rounded-xl h-10 font-mono"
+                className="rounded-xl h-9 sm:h-10 font-mono text-xs sm:text-sm"
               />
             </div>
           </div>
 
           {/* Quick Pay Buttons */}
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className="flex flex-wrap gap-1.5 pt-1">
             <Button
               type="button"
               variant={activeQuickKey === "Exact" ? "default" : "outline"}
               onClick={() => handleQuickPay("exact", "Exact")}
               className={cn(
-                "h-8 text-xs font-bold px-3 rounded-lg cursor-pointer transition-colors",
+                "h-7 sm:h-8 text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 rounded-lg cursor-pointer transition-colors",
                 activeQuickKey === "Exact" ? "bg-black text-white hover:bg-black/90" : "bg-muted/30 text-foreground"
               )}
             >
@@ -152,74 +176,74 @@ export default function PaymentModal({ isOpen, onOpenChange, totalUSD, totalKHR,
               variant={activeQuickKey === "$1" ? "default" : "outline"}
               onClick={() => handleQuickPay(1.00, "$1")}
               className={cn(
-                "h-8 text-xs font-bold px-3 rounded-lg cursor-pointer transition-colors",
+                "h-7 sm:h-8 text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 rounded-lg cursor-pointer transition-colors",
                 activeQuickKey === "$1" ? "bg-black text-white hover:bg-black/90" : "bg-muted/30 text-foreground"
               )}
             >
-              $1.00 (4,000៛)
+              $1.00 (4,100៛)
             </Button>
             <Button
               type="button"
               variant={activeQuickKey === "$5" ? "default" : "outline"}
               onClick={() => handleQuickPay(5.00, "$5")}
               className={cn(
-                "h-8 text-xs font-bold px-3 rounded-lg cursor-pointer transition-colors",
+                "h-7 sm:h-8 text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 rounded-lg cursor-pointer transition-colors",
                 activeQuickKey === "$5" ? "bg-black text-white hover:bg-black/90" : "bg-muted/30 text-foreground"
               )}
             >
-              $5.00 (20,000៛)
+              $5.00 (20,500៛)
             </Button>
             <Button
               type="button"
               variant={activeQuickKey === "$10" ? "default" : "outline"}
               onClick={() => handleQuickPay(10.00, "$10")}
               className={cn(
-                "h-8 text-xs font-bold px-3 rounded-lg cursor-pointer transition-colors",
+                "h-7 sm:h-8 text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 rounded-lg cursor-pointer transition-colors",
                 activeQuickKey === "$10" ? "bg-black text-white hover:bg-black/90" : "bg-muted/30 text-foreground"
               )}
             >
-              $10.00 (40,000៛)
+              $10.00 (41,000៛)
             </Button>
             <Button
               type="button"
               variant={activeQuickKey === "$20" ? "default" : "outline"}
               onClick={() => handleQuickPay(20.00, "$20")}
               className={cn(
-                "h-8 text-xs font-bold px-3 rounded-lg cursor-pointer transition-colors",
+                "h-7 sm:h-8 text-[11px] sm:text-xs font-bold px-2.5 sm:px-3 rounded-lg cursor-pointer transition-colors",
                 activeQuickKey === "$20" ? "bg-black text-white hover:bg-black/90" : "bg-muted/30 text-foreground"
               )}
             >
-              $20.00 (80,000៛)
+              $20.00 (82,000៛)
             </Button>
           </div>
 
           <hr className="border-slate-200 dark:border-slate-800" />
 
           {/* Calculations Summary Container */}
-          <div className="bg-slate-50 dark:bg-zinc-900/50 border rounded-2xl p-4 grid grid-cols-2 gap-4">
+          <div className="bg-slate-50 dark:bg-zinc-900/50 border rounded-2xl p-3 sm:p-4 grid grid-cols-2 gap-3 sm:gap-4">
             <div>
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Change Amount</div>
-              <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider">Change Amount</div>
+              <div className="text-lg sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
                 {changeKHR.toLocaleString()}៛
               </div>
-              <div className="text-sm font-semibold text-slate-500 font-mono mt-0.5">
+              <div className="text-xs sm:text-sm font-semibold text-slate-500 font-mono mt-0.5">
                 ${changeUSD.toFixed(2)}
               </div>
             </div>
             <div>
-              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Due Amount</div>
-              <div className="text-2xl font-black text-red-500 mt-1 font-mono">
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider">Due Amount</div>
+              <div className="text-lg sm:text-2xl font-black text-red-500 mt-1 font-mono">
                 {dueKHR.toLocaleString()}៛
               </div>
-              <div className="text-sm font-semibold text-slate-500 font-mono mt-0.5">
+              <div className="text-xs sm:text-sm font-semibold text-slate-500 font-mono mt-0.5">
                 ${dueUSD.toFixed(2)}
               </div>
             </div>
           </div>
 
           {/* Save Action Button */}
-          <Button type="submit" className="w-full bg-black hover:bg-black/90 text-white font-bold h-11 rounded-xl cursor-pointer">
-            Save
+          <Button type="submit" className="w-full bg-black hover:bg-black/90 text-white font-bold h-10 sm:h-11 rounded-xl cursor-pointer text-xs sm:text-sm">
+            Complete Payment
           </Button>
         </form>
       </DialogContent>

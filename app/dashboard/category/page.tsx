@@ -1,34 +1,38 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { IconPlus, IconSearch, IconEdit, IconTrash, IconCategory } from "@tabler/icons-react"
+import { IconPlus, IconSearch, IconEdit, IconTrash, IconCategory, IconLoader2 } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
+import { getCategories, createCategory, updateCategory, deleteCategory, Category } from "@/lib/api"
 import CreateCategory from "./CreateCategory"
 import EditCategory from "./EditCategory"
 
-interface Category {
-  id: number
-  name: string
-  count: string
-  status: string
-  icon: string
-}
-
 export default function CategoryPage() {
-  const [categories, setCategories] = useState<Category[]>([
-    { id: 1, name: "Coffee & Espresso", count: "18 items", status: "Active", icon: "☕" },
-    { id: 2, name: "Pastries & Bakery", count: "12 items", status: "Active", icon: "🥐" },
-    { id: 3, name: "Tea & Non-Coffee", count: "10 items", status: "Active", icon: "🍵" },
-    { id: 4, name: "Beans & Merchandise", count: "6 items", status: "Active", icon: "📦" },
-  ])
-
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+
+  const fetchCategories = async () => {
+    try {
+      setLoading(true)
+      const data = await getCategories()
+      setCategories(data)
+    } catch (error) {
+      console.error("Failed to load categories:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
 
   // Filter categories based on search query
   const filteredCategories = categories.filter((cat) =>
@@ -36,22 +40,48 @@ export default function CategoryPage() {
   )
 
   // Handle category creation
-  const handleCreate = (newCat: Omit<Category, "id">) => {
-    const nextId = categories.length > 0 ? Math.max(...categories.map((c) => c.id)) + 1 : 1
-    setCategories([...categories, { id: nextId, ...newCat }])
+  const handleCreate = async (newCat: Partial<Category>) => {
+    try {
+      const res = await createCategory(newCat)
+      if (res.success && res.result) {
+        setCategories((prev) => [res.result!, ...prev])
+      } else {
+        alert(res.error || "Failed to create category")
+      }
+    } catch (error) {
+      console.error("Failed to create category:", error)
+    }
   }
 
   // Handle category update
-  const handleSave = (updatedCat: Category) => {
-    setCategories(
-      categories.map((cat) => (cat.id === updatedCat.id ? updatedCat : cat))
-    )
+  const handleSave = async (updatedCat: Category) => {
+    try {
+      const res = await updateCategory(updatedCat.id, updatedCat)
+      if (res.success && res.result) {
+        setCategories((prev) =>
+          prev.map((cat) => (cat.id === updatedCat.id ? res.result! : cat))
+        )
+      } else {
+        alert(res.error || "Failed to update category")
+      }
+    } catch (error) {
+      console.error("Failed to update category:", error)
+    }
   }
 
   // Handle category deletion
-  const handleDelete = (id: number, name: string) => {
+  const handleDelete = async (id: number, name: string) => {
     if (window.confirm(`Are you sure you want to delete the category "${name}"?`)) {
-      setCategories(categories.filter((cat) => cat.id !== id))
+      try {
+        const success = await deleteCategory(id)
+        if (success) {
+          setCategories((prev) => prev.filter((cat) => cat.id !== id))
+        } else {
+          alert("Failed to delete category")
+        }
+      } catch (error) {
+        console.error("Failed to delete category:", error)
+      }
     }
   }
 
@@ -64,7 +94,7 @@ export default function CategoryPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Category Management</h1>
-            <p className="text-sm text-muted-foreground">Manage your coffee shop product categories</p>
+            <p className="text-sm text-muted-foreground">Manage your coffee shop product categories in MySQL</p>
           </div>
         </div>
         <Button 
@@ -96,7 +126,12 @@ export default function CategoryPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            {filteredCategories.length === 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+                <IconLoader2 className="h-5 w-5 animate-spin text-primary" />
+                <span>Loading categories from MySQL...</span>
+              </div>
+            ) : filteredCategories.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 No categories found matching "{searchQuery}"
               </div>
@@ -106,7 +141,7 @@ export default function CategoryPage() {
                   <tr>
                     <th className="px-4 py-3">Category</th>
                     <th className="px-4 py-3">Items Count</th>
-                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Note</th>
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -114,20 +149,11 @@ export default function CategoryPage() {
                   {filteredCategories.map((cat) => (
                     <tr key={cat.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3.5 font-medium flex items-center gap-3">
-                        <span className="text-xl">{cat.icon}</span>
+                        <span className="text-xl">{cat.icon || "☕"}</span>
                         <span>{cat.name}</span>
                       </td>
-                      <td className="px-4 py-3.5 text-muted-foreground">{cat.count}</td>
-                      <td className="px-4 py-3.5">
-                        <span className={cn(
-                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                          cat.status === "Active"
-                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                            : "bg-rose-500/10 text-rose-700 dark:text-rose-400"
-                        )}>
-                          {cat.status}
-                        </span>
-                      </td>
+                      <td className="px-4 py-3.5 text-muted-foreground">{cat.itemCount || 0} items</td>
+                      <td className="px-4 py-3.5 text-muted-foreground text-xs">{cat.note || "-"}</td>
                       <td className="px-4 py-3.5 text-right space-x-2">
                         <Button 
                           variant="ghost" 
@@ -175,5 +201,3 @@ export default function CategoryPage() {
     </div>
   )
 }
-
-

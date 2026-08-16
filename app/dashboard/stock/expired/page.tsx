@@ -19,10 +19,7 @@ interface ExpiredItem {
 
 export default function ExpiredStockPage() {
   const [search, setSearch] = useState("")
-  const [items, setItems] = useState<ExpiredItem[]>([
-    { id: "1", name: "Fresh Dairy Milk 1L", sku: "MK-WHL-01", category: "Dairy", qty: 4, unit: "packs", expiryDate: "2026-07-20", removedAt: "2026-07-21 08:30" },
-    { id: "2", name: "Banana Cake Slice", sku: "BK-BAN-01", category: "Pastries", qty: 3, unit: "pcs", expiryDate: "2026-07-21", removedAt: "2026-07-22 08:00" },
-  ])
+  const [items, setItems] = useState<ExpiredItem[]>([])
 
   const filtered = items.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -62,28 +59,34 @@ export default function ExpiredStockPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
-                <tr>
-                  <th className="px-4 py-3">SKU</th>
-                  <th className="px-4 py-3">Item Name</th>
-                  <th className="px-4 py-3 text-right">Removed Qty</th>
-                  <th className="px-4 py-3">Expiration Date</th>
-                  <th className="px-4 py-3 text-right">Removal Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filtered.map(item => (
-                  <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3.5 font-mono text-xs font-semibold text-red-500">{item.sku}</td>
-                    <td className="px-4 py-3.5 font-medium">{item.name}</td>
-                    <td className="px-4 py-3.5 text-right font-bold text-red-600">{item.qty} {item.unit}</td>
-                    <td className="px-4 py-3.5 font-semibold text-xs text-muted-foreground">{item.expiryDate}</td>
-                    <td className="px-4 py-3.5 text-right font-mono text-xs text-muted-foreground">{item.removedAt}</td>
+            {filtered.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground font-semibold">
+                No expired items logged.
+              </div>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
+                  <tr>
+                    <th className="px-4 py-3">SKU</th>
+                    <th className="px-4 py-3">Item Name</th>
+                    <th className="px-4 py-3 text-right">Removed Qty</th>
+                    <th className="px-4 py-3">Expiration Date</th>
+                    <th className="px-4 py-3 text-right">Removal Date</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map(item => (
+                    <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3.5 font-mono text-xs font-semibold text-red-500">{item.sku}</td>
+                      <td className="px-4 py-3.5 font-medium">{item.name}</td>
+                      <td className="px-4 py-3.5 text-right font-bold text-red-600">{item.qty} {item.unit}</td>
+                      <td className="px-4 py-3.5 font-semibold text-xs text-muted-foreground">{item.expiryDate}</td>
+                      <td className="px-4 py-3.5 text-right font-mono text-xs text-muted-foreground">{item.removedAt}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </CardContent>
       </Card>

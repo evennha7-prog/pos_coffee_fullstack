@@ -1,62 +1,105 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { IconPlus, IconSearch, IconEdit, IconTrash, IconTruck } from "@tabler/icons-react"
+import { IconPlus, IconSearch, IconEdit, IconTrash, IconTruck, IconLoader2 } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
+import { getSuppliers, createSupplier, updateSupplier, deleteSupplier, Supplier } from "@/lib/api"
 import CreateSupplier from "./CreateSupplier"
 import EditSupplier from "./EditSupplier"
 
-interface Supplier {
-  id: number
-  company: string
-  contact: string
-  phone: string
-  address: string
-  note: string
-}
-
 export default function SupplierPage() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([
-    { id: 1, company: "Highland Coffee Beans Co.", contact: "Bora Kim", phone: "+855 12 888 999", address: "123 St. Phnom Penh", note: "Delivers daily raw beans" },
-    { id: 2, company: "Fresh Dairy Milk Supplies", contact: "Srey Leak", phone: "+855 92 333 444", address: "456 St. Kandal", note: "Requires cash on delivery" },
-    { id: 3, company: "Artisan Bakery Wholesales", contact: "Jean Dupont", phone: "+855 10 555 777", address: "789 St. Siem Reap", note: "Pastry supplier" },
-    { id: 4, company: "Eco Packaging Cambodia", contact: "Chea Meng", phone: "+855 78 222 111", address: "101 St. Phnom Penh", note: "Eco takeaway packaging" },
-  ])
-
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
 
+  const fetchSuppliers = async () => {
+    try {
+      setLoading(true)
+      const data = await getSuppliers()
+      setSuppliers(data)
+    } catch (error) {
+      console.error("Failed to load suppliers:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchSuppliers()
+  }, [])
+
   // Filter suppliers based on search query
-  const filteredSuppliers = suppliers.filter((s) =>
-    s.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.contact.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.note.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredSuppliers = suppliers.filter((s) => {
+    const bName = (s.business_name || s.businessName || "").toLowerCase()
+    const name = (s.name || "").toLowerCase()
+    const phone = (s.phone || "").toLowerCase()
+    const q = searchQuery.toLowerCase()
+    return bName.includes(q) || name.includes(q) || phone.includes(q)
+  })
 
   // Handle supplier creation
-  const handleCreate = (newSupp: Omit<Supplier, "id">) => {
-    const nextId = suppliers.length > 0 ? Math.max(...suppliers.map((s) => s.id)) + 1 : 1
-    setSuppliers([...suppliers, { id: nextId, ...newSupp }])
+  const handleCreate = async (newSupp: any) => {
+    try {
+      const payload: Partial<Supplier> = {
+        business_name: newSupp.company || newSupp.business_name || newSupp.name,
+        name: newSupp.contact || newSupp.name,
+        phone: newSupp.phone || "",
+        address: newSupp.address || "",
+        note: newSupp.note || "",
+      }
+      const res = await createSupplier(payload)
+      if (res.success && res.result) {
+        setSuppliers((prev) => [res.result!, ...prev])
+      } else {
+        alert(res.error || "Failed to create supplier")
+      }
+    } catch (error) {
+      console.error("Failed to create supplier:", error)
+    }
   }
 
   // Handle supplier update
-  const handleSave = (updatedSupp: Supplier) => {
-    setSuppliers(
-      suppliers.map((s) => (s.id === updatedSupp.id ? updatedSupp : s))
-    )
+  const handleSave = async (updatedSupp: any) => {
+    try {
+      const payload: Partial<Supplier> = {
+        business_name: updatedSupp.company || updatedSupp.business_name || updatedSupp.name,
+        name: updatedSupp.contact || updatedSupp.name,
+        phone: updatedSupp.phone || "",
+        address: updatedSupp.address || "",
+        note: updatedSupp.note || "",
+      }
+      const res = await updateSupplier(updatedSupp.id, payload)
+      if (res.success && res.result) {
+        setSuppliers((prev) =>
+          prev.map((s) => (s.id === updatedSupp.id ? res.result! : s))
+        )
+      } else {
+        alert(res.error || "Failed to update supplier")
+      }
+    } catch (error) {
+      console.error("Failed to update supplier:", error)
+    }
   }
 
   // Handle supplier deletion
-  const handleDelete = (id: number, company: string) => {
+  const handleDelete = async (id: number, company: string) => {
     if (window.confirm(`Are you sure you want to delete the supplier "${company}"?`)) {
-      setSuppliers(suppliers.filter((s) => s.id !== id))
+      try {
+        const success = await deleteSupplier(id)
+        if (success) {
+          setSuppliers((prev) => prev.filter((s) => s.id !== id))
+        } else {
+          alert("Failed to delete supplier")
+        }
+      } catch (error) {
+        console.error("Failed to delete supplier:", error)
+      }
     }
   }
 
@@ -69,7 +112,7 @@ export default function SupplierPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Supplier Management</h1>
-            <p className="text-sm text-muted-foreground">Manage coffee bean and inventory raw material suppliers</p>
+            <p className="text-sm text-muted-foreground">Manage coffee bean & raw material suppliers from MySQL</p>
           </div>
         </div>
         <Button 
@@ -101,7 +144,12 @@ export default function SupplierPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            {filteredSuppliers.length === 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+                <IconLoader2 className="h-5 w-5 animate-spin text-primary" />
+                <span>Loading suppliers from MySQL...</span>
+              </div>
+            ) : filteredSuppliers.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 No suppliers found matching "{searchQuery}"
               </div>
@@ -110,7 +158,7 @@ export default function SupplierPage() {
                 <thead className="border-y bg-muted/40 text-xs font-medium text-muted-foreground uppercase">
                   <tr>
                     <th className="px-4 py-3">Business Name</th>
-                    <th className="px-4 py-3">Name</th>
+                    <th className="px-4 py-3">Contact Person</th>
                     <th className="px-4 py-3">Phone</th>
                     <th className="px-4 py-3">Address</th>
                     <th className="px-4 py-3">Note</th>
@@ -124,19 +172,23 @@ export default function SupplierPage() {
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600">
                           <IconTruck className="h-4 w-4" />
                         </div>
-                        <span>{s.company}</span>
+                        <span>{s.business_name || s.businessName}</span>
                       </td>
-                      <td className="px-4 py-3.5 text-foreground font-medium">{s.contact}</td>
-                      <td className="px-4 py-3.5 text-muted-foreground font-mono text-xs">{s.phone}</td>
-                      <td className="px-4 py-3.5 text-muted-foreground text-xs">{s.address}</td>
-                      <td className="px-4 py-3.5 text-muted-foreground text-xs">{s.note}</td>
+                      <td className="px-4 py-3.5 text-foreground font-medium">{s.name}</td>
+                      <td className="px-4 py-3.5 text-muted-foreground font-mono text-xs">{s.phone || "-"}</td>
+                      <td className="px-4 py-3.5 text-muted-foreground text-xs">{s.address || "-"}</td>
+                      <td className="px-4 py-3.5 text-muted-foreground text-xs">{s.note || "-"}</td>
                       <td className="px-4 py-3.5 text-right space-x-2">
                         <Button 
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8 cursor-pointer"
                           onClick={() => {
-                            setEditingSupplier(s)
+                            setEditingSupplier({
+                              ...s,
+                              company: s.business_name || s.businessName,
+                              contact: s.name,
+                            } as any)
                             setIsEditOpen(true)
                           }}
                         >
@@ -146,7 +198,7 @@ export default function SupplierPage() {
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8 text-destructive cursor-pointer"
-                          onClick={() => handleDelete(s.id, s.company)}
+                          onClick={() => handleDelete(s.id, s.business_name || s.businessName || s.name)}
                         >
                           <IconTrash className="h-4 w-4" />
                         </Button>
@@ -177,4 +229,3 @@ export default function SupplierPage() {
     </div>
   )
 }
-

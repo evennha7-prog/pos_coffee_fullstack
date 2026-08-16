@@ -19,10 +19,7 @@ interface DamagedItem {
 
 export default function DamagedLostPage() {
   const [search, setSearch] = useState("")
-  const [items, setItems] = useState<DamagedItem[]>([
-    { id: "1", name: "Whole Milk 1L", sku: "MK-WHL-01", category: "Dairy", qty: 2, unit: "packs", reason: "Spillage during delivery", recordedAt: "2026-07-21 08:45" },
-    { id: "2", name: "Whipped Cream Can", sku: "CP-CRM-01", category: "Dairy", qty: 1, unit: "can", reason: "Defective nozzle valve", recordedAt: "2026-07-20 16:30" },
-  ])
+  const [items, setItems] = useState<DamagedItem[]>([])
 
   const filtered = items.filter(item =>
     item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -63,28 +60,34 @@ export default function DamagedLostPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
-                <tr>
-                  <th className="px-4 py-3">SKU</th>
-                  <th className="px-4 py-3">Item Name</th>
-                  <th className="px-4 py-3 text-right">Lost Qty</th>
-                  <th className="px-4 py-3">Reason</th>
-                  <th className="px-4 py-3 text-right">Logged At</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {filtered.map(item => (
-                  <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3.5 font-mono text-xs font-semibold">{item.sku}</td>
-                    <td className="px-4 py-3.5 font-medium">{item.name}</td>
-                    <td className="px-4 py-3.5 text-right font-bold text-rose-500">{item.qty} {item.unit}</td>
-                    <td className="px-4 py-3.5 text-muted-foreground">{item.reason}</td>
-                    <td className="px-4 py-3.5 text-right font-mono text-xs text-muted-foreground">{item.recordedAt}</td>
+            {filtered.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground font-semibold">
+                No damage or lost items recorded.
+              </div>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="border-y bg-muted/40 text-xs font-semibold text-muted-foreground uppercase">
+                  <tr>
+                    <th className="px-4 py-3">SKU</th>
+                    <th className="px-4 py-3">Item Name</th>
+                    <th className="px-4 py-3 text-right">Lost Qty</th>
+                    <th className="px-4 py-3">Reason</th>
+                    <th className="px-4 py-3 text-right">Logged At</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {filtered.map(item => (
+                    <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3.5 font-mono text-xs font-semibold">{item.sku}</td>
+                      <td className="px-4 py-3.5 font-medium">{item.name}</td>
+                      <td className="px-4 py-3.5 text-right font-bold text-rose-500">{item.qty} {item.unit}</td>
+                      <td className="px-4 py-3.5 text-muted-foreground">{item.reason}</td>
+                      <td className="px-4 py-3.5 text-right font-mono text-xs text-muted-foreground">{item.recordedAt}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </CardContent>
       </Card>
