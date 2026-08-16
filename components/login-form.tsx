@@ -165,7 +165,7 @@ export function LoginForm({
 
           <DialogHeader className="text-center sm:text-center">
             <DialogTitle className="text-xl font-bold text-foreground text-center">
-              Coming Soon for Register in System 🚀
+              Coming Soon for Register in System
             </DialogTitle>
             <DialogDescription className="text-muted-foreground text-sm text-center mt-2 leading-relaxed">
               Self-service registration is currently under development. Please contact your store administrator to create or activate your staff account.

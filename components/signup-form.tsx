@@ -130,7 +130,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
 
           <DialogHeader className="text-center sm:text-center">
             <DialogTitle className="text-2xl font-bold text-foreground text-center">
-              Coming Soon for Register in System 🚀
+              Coming Soon for Register in System
             </DialogTitle>
             <DialogDescription className="text-muted-foreground text-sm text-center mt-2 leading-relaxed">
               Public self-registration is currently under preparation. Please contact the administrator or login with your assigned staff credentials.
