@@ -108,6 +108,7 @@ dist/
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+.firebase/
 
 # -----------------------------------------------------------------------------
 # 7. LOGS & DIAGNOSTICS
