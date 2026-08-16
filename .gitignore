@@ -1,8 +1,91 @@
 # =============================================================================
-# Coffee POS - Root Security & Git Ignore Configuration
+# COFFEE POS - COMPREHENSIVE PRODUCTION SECURITY & GITIGNORE
 # =============================================================================
 
-# Dependencies
+# -----------------------------------------------------------------------------
+# 1. ENVIRONMENT VARIABLES & SECRETS (CRITICAL SECURITY)
+# -----------------------------------------------------------------------------
+.env
+.env*
+*.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+*.env.staging
+*.env.prod
+*.env.backup
+*.env.dev
+server_data/.env
+server_data/.env*
+server_data/*.env
+
+# Allow sample templates only (No real passwords/secrets in repo)
+!.env.example
+!server_data/.env.example
+
+# -----------------------------------------------------------------------------
+# 2. PRIVATE KEYS, CERTIFICATES & CREDENTIALS
+# -----------------------------------------------------------------------------
+*.pem
+*.key
+*.pub
+*.pkcs12
+*.pfx
+*.p12
+*.crt
+*.cer
+*.der
+*.csr
+*.kdbx
+*.pwd
+*.pass
+*.jwt
+*.secret
+
+# SSH Keys
+id_rsa
+id_rsa.pub
+id_dsa
+id_ecdsa
+id_ed25519
+secring.gpg
+
+# Cloud & API Service Account Credentials
+service-account*.json
+google-credentials*.json
+firebase-adminsdk*.json
+credentials*.json
+client_secret*.json
+token.json
+.aws/
+aws-credentials*
+
+# -----------------------------------------------------------------------------
+# 3. DATABASE DUMPS & LOCAL DATA FILES
+# -----------------------------------------------------------------------------
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.tar.gz
+*.bak
+*.backup
+
+# -----------------------------------------------------------------------------
+# 4. USER UPLOADED FILES & LOCAL MEDIA STORAGE
+# -----------------------------------------------------------------------------
+upload/
+uploads/
+server_data/upload/*
+server_data/src/upload/*
+!server_data/upload/.gitkeep
+!server_data/src/upload/.gitkeep
+
+# -----------------------------------------------------------------------------
+# 5. DEPENDENCIES & PACKAGE MANAGERS
+# -----------------------------------------------------------------------------
 node_modules/
 */node_modules/
 */*/node_modules/
@@ -14,36 +97,21 @@ node_modules/
 !.yarn/releases
 !.yarn/versions
 
-# Environment Variables & Security Secrets
-.env
-.env*
-!.env.example
-*.env.local
-*.env.development.local
-*.env.test.local
-*.env.production.local
-server_data/.env
-server_data/.env*
-!server_data/.env.example
-
-# Next.js Build Outputs & Cache
+# -----------------------------------------------------------------------------
+# 6. BUILD OUTPUTS & FRAMEWORK CACHES
+# -----------------------------------------------------------------------------
 .next/
 out/
 build/
 dist/
 */dist/
-
-# TypeScript Build Info
 *.tsbuildinfo
 next-env.d.ts
+.vercel
 
-# User Uploaded Files & Static Assets
-server_data/upload/*
-!server_data/upload/.gitkeep
-server_data/src/upload/*
-!server_data/src/upload/.gitkeep
-
-# Logs and Debugging
+# -----------------------------------------------------------------------------
+# 7. LOGS & DIAGNOSTICS
+# -----------------------------------------------------------------------------
 logs/
 *.log
 npm-debug.log*
@@ -52,12 +120,16 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Testing & Coverage
+# -----------------------------------------------------------------------------
+# 8. TESTING & CODE COVERAGE
+# -----------------------------------------------------------------------------
 coverage/
 *.lcov
 .nyc_output
 
-# OS Generated & Temp Files
+# -----------------------------------------------------------------------------
+# 9. OPERATING SYSTEM & TEMPORARY FILES
+# -----------------------------------------------------------------------------
 .DS_Store
 .DS_Store?
 ._*
@@ -65,33 +137,23 @@ coverage/
 .Trashes
 ehthumbs.db
 Thumbs.db
+Desktop.ini
+*~
+*.swp
+*.swo
+*.tmp
+*.temp
 
-# IDE & Editor Configuration
+# -----------------------------------------------------------------------------
+# 10. IDE & EDITOR SETTINGS
+# -----------------------------------------------------------------------------
+.idea/
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
-.idea/
+*.sublime-project
+*.sublime-workspace
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
-
-# Security Credentials, Keys & Certificates
-*.pem
-*.key
-*.crt
-*.cert
-*.pfx
-*.p12
-*.jks
-id_rsa
-id_ecdsa
-id_ed25519
-secring.gpg
-credentials.json
-token.json
-service-account*.json
-
-# Vercel & Deployment
-.vercel
