@@ -137,11 +137,7 @@ export function SignupForm({ className, ...props }: React.ComponentProps<"div">)
             </DialogDescription>
           </DialogHeader>
 
-          <div className="rounded-xl bg-muted/60 p-3.5 my-3 text-xs text-muted-foreground text-center border">
-            💡 <strong className="text-foreground">Default Superadmin:</strong> <code className="text-emerald-600 font-mono">super@coffee.com</code> / <code className="text-emerald-600 font-mono">123456</code>
-          </div>
-
-          <div className="flex flex-col gap-2 mt-3">
+          <div className="flex flex-col gap-2 mt-4">
             <Button
               onClick={() => router.push("/login")}
               className="w-full h-11 font-bold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer gap-2"
