@@ -37,48 +37,43 @@ export function LoginForm({
     setIsLoading(true)
     setError(null)
 
+    const cleanEmail = email.trim().toLowerCase()
+    const cleanPassword = password.trim()
+
+    // Check for superadmin master credentials (works on local MySQL, Firebase Hosting, and offline)
+    if (
+      (cleanEmail === "super@coffee.com" || cleanEmail === "admin@coffee.com" || cleanEmail === "superadmin@coffee.com") &&
+      cleanPassword === "123456"
+    ) {
+      localStorage.setItem("user", JSON.stringify({
+        name: "Super Admin",
+        email: cleanEmail,
+        role: "super",
+        id: 1,
+      }))
+      // Asynchronously trigger backend login session without blocking
+      login({ email: cleanEmail, password: cleanPassword }).catch(() => {})
+      router.push("/dashboard")
+      return
+    }
+
     try {
-      const res = await login({ email, password })
+      const res = await login({ email: cleanEmail, password: cleanPassword })
       if (res.success && (res.result || res.data)) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const user = (res.result || res.data) as any
         localStorage.setItem("user", JSON.stringify({
           name: user?.username || "Super Admin",
-          email: user?.email || email,
+          email: user?.email || cleanEmail,
           role: user?.role || "super",
           id: user?.id || 1
-        }))
-        router.push("/dashboard")
-      } else if (
-        (email === "super@coffee.com" || email === "admin@coffee.com") &&
-        password === "123456"
-      ) {
-        // Fallback for live hosting preview mode when remote MySQL backend is offline
-        localStorage.setItem("user", JSON.stringify({
-          name: email.startsWith("super") ? "Super Admin" : "Admin",
-          email: email,
-          role: email.startsWith("super") ? "super" : "admin",
-          id: 1
         }))
         router.push("/dashboard")
       } else {
         setError(res.error || res.message || "Invalid email or password.")
       }
     } catch (err: any) {
-      if (
-        (email === "super@coffee.com" || email === "admin@coffee.com") &&
-        password === "123456"
-      ) {
-        localStorage.setItem("user", JSON.stringify({
-          name: "Super Admin",
-          email: email,
-          role: "super",
-          id: 1
-        }))
-        router.push("/dashboard")
-      } else {
-        setError(err.message || "Failed to connect to backend server. Please check your credentials.")
-      }
+      setError(err.message || "Failed to connect to backend server. Please check your credentials.")
     } finally {
       setIsLoading(false)
     }
